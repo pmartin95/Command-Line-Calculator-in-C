@@ -39,6 +39,9 @@ typedef struct
     Lexer *lexer;
     Token current_token;
     Token previous_token; // Track previous token for implicit multiplication
+    int recursion_depth;  // Added for recursion depth tracking
+    int max_depth;        // Added for maximum recursion depth
+    int error_occurred;   // Added for error state tracking
 } Parser;
 
 // Parser functions
@@ -63,7 +66,7 @@ ASTNode *create_unary_node(TokenType op, ASTNode *operand);
 // AST cleanup
 void free_ast(ASTNode *node);
 
-// Evaluation
-double evaluate_ast(ASTNode *node);
+// Evaluation (made const-correct)
+double evaluate_ast(const ASTNode *node);
 
 #endif

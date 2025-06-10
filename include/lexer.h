@@ -2,6 +2,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <math.h>
 #ifndef __LEXER__
 #define __LEXER__
 
@@ -41,6 +42,7 @@ typedef struct
 {
     const char *text;
     size_t pos;
+    size_t input_length;  // Added for bounds checking
     char current_char;
 } Lexer;
 

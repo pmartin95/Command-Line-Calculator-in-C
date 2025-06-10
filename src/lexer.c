@@ -1,26 +1,65 @@
 #include "lexer.h"
+#include <errno.h>
+#include <limits.h>
+
+// Maximum input length to prevent DoS attacks
+#define MAX_INPUT_LENGTH 1024
 
 void init_lexer(Lexer *lexer, const char *input)
 {
+    if (!lexer || !input) {
+        if (lexer) {
+            lexer->text = "";
+            lexer->pos = 0;
+            lexer->current_char = '\0';
+            lexer->input_length = 0;
+        }
+        return;
+    }
+    
     lexer->text = input;
     lexer->pos = 0;
+    lexer->input_length = strlen(input);
+    
+    // Reject overly long input
+    if (lexer->input_length > MAX_INPUT_LENGTH) {
+        lexer->text = "";
+        lexer->pos = 0;
+        lexer->current_char = '\0';
+        lexer->input_length = 0;
+        return;
+    }
+    
     lexer->current_char = input[0];
 }
 
 void advance(Lexer *lexer)
 {
+    if (!lexer || lexer->pos >= lexer->input_length) {
+        return;
+    }
+    
     lexer->pos++;
-    lexer->current_char = lexer->text[lexer->pos];
+    if (lexer->pos >= lexer->input_length) {
+        lexer->current_char = '\0';
+    } else {
+        lexer->current_char = lexer->text[lexer->pos];
+    }
 }
 
 char peek(Lexer *lexer)
 {
+    if (!lexer || lexer->pos + 1 >= lexer->input_length) {
+        return '\0';
+    }
     return lexer->text[lexer->pos + 1];
 }
 
 void skip_whitespace(Lexer *lexer)
 {
-    while (isspace(lexer->current_char))
+    if (!lexer) return;
+    
+    while (lexer->current_char != '\0' && isspace(lexer->current_char))
     {
         advance(lexer);
     }
@@ -28,12 +67,23 @@ void skip_whitespace(Lexer *lexer)
 
 Token lex_number(Lexer *lexer)
 {
+    if (!lexer) {
+        return (Token){.type = TOKEN_INVALID, .int_value = 0};
+    }
+    
     size_t start_pos = lexer->pos;
     int has_dot = 0;
-    char buffer[64];
+    char buffer[128];  // Increased buffer size
     size_t buf_idx = 0;
+    int digit_count = 0;
 
-    while (isdigit(lexer->current_char) || lexer->current_char == '.')
+    // Handle edge case: single dot without digits
+    if (lexer->current_char == '.' && !isdigit(peek(lexer))) {
+        return (Token){.type = TOKEN_INVALID, .int_value = 0};
+    }
+
+    while ((isdigit(lexer->current_char) || lexer->current_char == '.') && 
+           lexer->current_char != '\0')
     {
         if (lexer->current_char == '.')
         {
@@ -43,38 +93,65 @@ Token lex_number(Lexer *lexer)
                 return (Token){.type = TOKEN_INVALID, .int_value = 0};
             }
 
-            // Check for '.' not followed by digit
-            char next = lexer->text[lexer->pos + 1];
-            if (!isdigit(next))
-            {
+            // Check for '.' not followed by digit (unless we already have digits)
+            char next = peek(lexer);
+            if (!isdigit(next) && digit_count == 0) {
                 return (Token){.type = TOKEN_INVALID, .int_value = 0};
             }
 
             has_dot = 1;
+        } else {
+            digit_count++;
         }
 
-        if (buf_idx < sizeof(buffer) - 1)
-        {
-            buffer[buf_idx++] = lexer->current_char;
+        // Prevent buffer overflow
+        if (buf_idx >= sizeof(buffer) - 1) {
+            return (Token){.type = TOKEN_INVALID, .int_value = 0};
         }
-
+        
+        buffer[buf_idx++] = lexer->current_char;
         advance(lexer);
+    }
+
+    // Must have at least one digit
+    if (digit_count == 0) {
+        return (Token){.type = TOKEN_INVALID, .int_value = 0};
     }
 
     buffer[buf_idx] = '\0';
 
     if (has_dot)
     {
-        return (Token){.type = TOKEN_FLOAT, .float_value = atof(buffer)};
+        errno = 0;
+        double val = strtod(buffer, NULL);
+        
+        // Check for overflow/underflow
+        if (errno == ERANGE || isinf(val) || isnan(val)) {
+            return (Token){.type = TOKEN_INVALID, .int_value = 0};
+        }
+        
+        return (Token){.type = TOKEN_FLOAT, .float_value = val};
     }
     else
     {
-        return (Token){.type = TOKEN_INT, .int_value = atoi(buffer)};
+        errno = 0;
+        long val = strtol(buffer, NULL, 10);
+        
+        // Check for overflow/underflow
+        if (errno == ERANGE || val > INT_MAX || val < INT_MIN) {
+            return (Token){.type = TOKEN_INVALID, .int_value = 0};
+        }
+        
+        return (Token){.type = TOKEN_INT, .int_value = (int)val};
     }
 }
 
 Token get_next_token(Lexer *lexer)
 {
+    if (!lexer) {
+        return (Token){.type = TOKEN_INVALID, .int_value = 0};
+    }
+    
     while (lexer->current_char != '\0')
     {
         if (isspace(lexer->current_char))
@@ -83,9 +160,22 @@ Token get_next_token(Lexer *lexer)
             continue;
         }
 
-        if (isdigit(lexer->current_char) || lexer->current_char == '.')
+        // Handle numbers and standalone dots
+        if (isdigit(lexer->current_char))
         {
             return lex_number(lexer);
+        }
+        
+        // Handle dots that might start numbers
+        if (lexer->current_char == '.')
+        {
+            if (isdigit(peek(lexer))) {
+                return lex_number(lexer);
+            } else {
+                // Standalone dot is invalid
+                advance(lexer);
+                return (Token){.type = TOKEN_INVALID, .int_value = 0};
+            }
         }
 
         switch (lexer->current_char)
@@ -118,7 +208,9 @@ Token get_next_token(Lexer *lexer)
                 advance(lexer);
                 return (Token){.type = TOKEN_EQ, .int_value = 0};
             }
-            break; // Fall through to INVALID
+            // Single '=' is invalid
+            advance(lexer);
+            return (Token){.type = TOKEN_INVALID, .int_value = 0};
         case '!':
             if (peek(lexer) == '=')
             {
@@ -126,7 +218,9 @@ Token get_next_token(Lexer *lexer)
                 advance(lexer);
                 return (Token){.type = TOKEN_NEQ, .int_value = 0};
             }
-            break;
+            // Single '!' is invalid
+            advance(lexer);
+            return (Token){.type = TOKEN_INVALID, .int_value = 0};
         case '<':
             if (peek(lexer) == '=')
             {
@@ -145,11 +239,11 @@ Token get_next_token(Lexer *lexer)
             }
             advance(lexer);
             return (Token){.type = TOKEN_GT, .int_value = 0};
+        default:
+            // Unknown character
+            advance(lexer);
+            return (Token){.type = TOKEN_INVALID, .int_value = 0};
         }
-
-        // If we got here, it was an unknown token
-        advance(lexer);
-        return (Token){.type = TOKEN_INVALID, .int_value = 0};
     }
 
     return (Token){.type = TOKEN_EOF, .int_value = 0};
