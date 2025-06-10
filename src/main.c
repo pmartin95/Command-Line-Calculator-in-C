@@ -3,6 +3,10 @@
 #include <string.h>
 #include <limits.h>
 #include <sys/types.h>
+#ifdef HAVE_READLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
 #include "lexer.h"
 #include "parser.h"
 
@@ -52,6 +56,19 @@ void print_ast(const ASTNode *node, int depth)
 
 char *read_input_line(void)
 {
+#ifdef HAVE_READLINE
+    // Use readline for history and line editing support
+    char *line = readline("> ");
+
+    // Add non-empty lines to history
+    if (line && *line)
+    {
+        add_history(line);
+    }
+
+    return line;
+#else
+    // Fallback to basic getline
     char *line = NULL;
     size_t len = 0;
     ssize_t read;
@@ -73,11 +90,22 @@ char *read_input_line(void)
     }
 
     return line;
+#endif
 }
 
 void print_help(void)
 {
     printf("Mathematical Calculator with Function Support\n\n");
+
+#ifdef HAVE_READLINE
+    printf("Navigation:\n");
+    printf("  Up/Down Arrow -> Browse command history\n");
+    printf("  Left/Right    -> Move cursor in current line\n");
+    printf("  Ctrl+A        -> Move to beginning of line\n");
+    printf("  Ctrl+E        -> Move to end of line\n");
+    printf("  Ctrl+L        -> Clear screen\n\n");
+#endif
+
     printf("Basic operations:\n");
     printf("  2+3*4         -> 14\n");
     printf("  2(3+4)        -> 14 (implicit multiplication)\n");
@@ -140,16 +168,19 @@ int main(int argc, char *argv[])
 {
     char *input = NULL;
 
+#ifdef HAVE_READLINE
+    printf("Advanced Mathematical Calculator (with readline support)\n");
+    printf("Type 'quit' to exit, 'help' for examples\n");
+    printf("Use Up/Down arrows to browse history\n\n");
+#else
     printf("Advanced Mathematical Calculator\n");
-    printf("Type 'quit' to exit, 'help' for examples\n\n");
+    printf("Type 'quit' to exit, 'help' for examples\n");
+    printf("Note: Compile with -DHAVE_READLINE -lreadline for history support\n\n");
+#endif
 
     while (1)
     {
-        // Free previous input
-        free(input);
-        input = NULL;
-
-        // Read input line
+        // Read input line (readline automatically handles previous input)
         input = read_input_line();
         if (!input)
         {
@@ -159,18 +190,21 @@ int main(int argc, char *argv[])
         // Skip empty input
         if (strlen(input) == 0)
         {
+            free(input);
             continue;
         }
 
         // Handle commands
         if (strcmp(input, "quit") == 0)
         {
+            free(input);
             break;
         }
 
         if (strcmp(input, "help") == 0)
         {
             print_help();
+            free(input);
             continue;
         }
 
@@ -182,6 +216,7 @@ int main(int argc, char *argv[])
         if (lexer.input_length == 0 && strlen(input) > 0)
         {
             printf("Input too long or invalid\n");
+            free(input);
             continue;
         }
 
@@ -195,6 +230,7 @@ int main(int argc, char *argv[])
         {
             printf("Parse error\n");
             free_ast(ast);
+            free(input);
             continue;
         }
 
@@ -203,6 +239,7 @@ int main(int argc, char *argv[])
         {
             printf("Invalid token encountered\n");
             free_ast(ast);
+            free(input);
             continue;
         }
 
@@ -211,6 +248,7 @@ int main(int argc, char *argv[])
             printf("Unexpected token at end: %s\n",
                    token_type_str(parser.current_token.type));
             free_ast(ast);
+            free(input);
             continue;
         }
 
@@ -235,10 +273,14 @@ int main(int argc, char *argv[])
         }
 
         free_ast(ast);
+        free(input);
     }
 
-    // Cleanup
-    free(input);
+#ifdef HAVE_READLINE
+    // Cleanup readline history
+    clear_history();
+#endif
+
     printf("Goodbye!\n");
     return 0;
 }
