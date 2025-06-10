@@ -176,20 +176,20 @@ Token lex_number(Lexer *lexer)
 {
     if (!lexer)
     {
-        return (Token){.type = TOKEN_INVALID, .int_value = 0};
+        return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
     }
 
     size_t start_pos = lexer->pos;
     int has_dot = 0;
     int has_exponent = 0;
-    char buffer[128];
+    char buffer[256]; // Increased buffer size for high precision
     size_t buf_idx = 0;
     int digit_count = 0;
 
     // Handle edge case: single dot without digits
     if (lexer->current_char == '.' && !isdigit(peek(lexer)))
     {
-        return (Token){.type = TOKEN_INVALID, .int_value = 0};
+        return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
     }
 
     // Parse the integer/fractional part
@@ -201,14 +201,14 @@ Token lex_number(Lexer *lexer)
             if (has_dot)
             {
                 // Multiple dots: invalid number format
-                return (Token){.type = TOKEN_INVALID, .int_value = 0};
+                return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
             }
 
             // Check for '.' not followed by digit (unless we already have digits)
             char next = peek(lexer);
             if (!isdigit(next) && digit_count == 0)
             {
-                return (Token){.type = TOKEN_INVALID, .int_value = 0};
+                return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
             }
 
             has_dot = 1;
@@ -221,7 +221,7 @@ Token lex_number(Lexer *lexer)
         // Prevent buffer overflow
         if (buf_idx >= sizeof(buffer) - 1)
         {
-            return (Token){.type = TOKEN_INVALID, .int_value = 0};
+            return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
         }
 
         buffer[buf_idx++] = lexer->current_char;
@@ -231,7 +231,7 @@ Token lex_number(Lexer *lexer)
     // Must have at least one digit so far
     if (digit_count == 0)
     {
-        return (Token){.type = TOKEN_INVALID, .int_value = 0};
+        return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
     }
 
     // Check for scientific notation (e or E)
@@ -250,7 +250,7 @@ Token lex_number(Lexer *lexer)
             // Prevent buffer overflow
             if (buf_idx >= sizeof(buffer) - 1)
             {
-                return (Token){.type = TOKEN_INVALID, .int_value = 0};
+                return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
             }
 
             // Add the 'e' or 'E'
@@ -262,7 +262,7 @@ Token lex_number(Lexer *lexer)
             {
                 if (buf_idx >= sizeof(buffer) - 1)
                 {
-                    return (Token){.type = TOKEN_INVALID, .int_value = 0};
+                    return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
                 }
                 buffer[buf_idx++] = lexer->current_char;
                 advance(lexer);
@@ -274,7 +274,7 @@ Token lex_number(Lexer *lexer)
             {
                 if (buf_idx >= sizeof(buffer) - 1)
                 {
-                    return (Token){.type = TOKEN_INVALID, .int_value = 0};
+                    return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
                 }
                 buffer[buf_idx++] = lexer->current_char;
                 exp_digit_count++;
@@ -284,12 +284,20 @@ Token lex_number(Lexer *lexer)
             // Must have at least one digit in exponent
             if (exp_digit_count == 0)
             {
-                return (Token){.type = TOKEN_INVALID, .int_value = 0};
+                return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
             }
         }
     }
 
     buffer[buf_idx] = '\0';
+
+    // Create a copy of the number string for MPFR
+    char *number_str = malloc(strlen(buffer) + 1);
+    if (!number_str)
+    {
+        return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
+    }
+    strcpy(number_str, buffer);
 
     // If we have a decimal point or exponent, it's a float
     if (has_dot || has_exponent)
@@ -297,26 +305,34 @@ Token lex_number(Lexer *lexer)
         errno = 0;
         double val = strtod(buffer, NULL);
 
-        // Check for overflow/underflow
+        // Check for overflow/underflow in double (for backwards compatibility)
         if (errno == ERANGE || isinf(val) || isnan(val))
         {
-            return (Token){.type = TOKEN_INVALID, .int_value = 0};
+            free(number_str);
+            return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
         }
 
-        return (Token){.type = TOKEN_FLOAT, .float_value = val};
+        return (Token){.type = TOKEN_FLOAT, .float_value = val, .number_string = number_str};
     }
     else
     {
         errno = 0;
         long val = strtol(buffer, NULL, 10);
 
-        // Check for overflow/underflow
-        if (errno == ERANGE || val > INT_MAX || val < INT_MIN)
+        // For very large integers, we'll still store as string for MPFR
+        if (errno == ERANGE)
         {
-            return (Token){.type = TOKEN_INVALID, .int_value = 0};
+            // Treat as float for MPFR processing
+            return (Token){.type = TOKEN_FLOAT, .float_value = 0.0, .number_string = number_str};
         }
 
-        return (Token){.type = TOKEN_INT, .int_value = (int)val};
+        // Check if it fits in int for backwards compatibility
+        if (val > INT_MAX || val < INT_MIN)
+        {
+            return (Token){.type = TOKEN_FLOAT, .float_value = (double)val, .number_string = number_str};
+        }
+
+        return (Token){.type = TOKEN_INT, .int_value = (int)val, .number_string = number_str};
     }
 }
 

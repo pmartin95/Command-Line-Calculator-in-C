@@ -21,10 +21,16 @@ void print_ast(const ASTNode *node, int depth)
     switch (node->type)
     {
     case NODE_NUMBER:
-        if (node->number.is_int)
-            printf("NUMBER: %d\n", (int)node->number.value);
+        // For MPFR numbers, we need to print differently
+        if (node->number.is_int && mpfr_fits_slong_p(node->number.value, global_rounding))
+        {
+            long val = mpfr_get_si(node->number.value, global_rounding);
+            printf("NUMBER: %ld\n", val);
+        }
         else
-            printf("NUMBER: %g\n", node->number.value);
+        {
+            mpfr_printf("NUMBER: %.6Rf\n", node->number.value);
+        }
         break;
 
     case NODE_CONSTANT:
@@ -95,7 +101,7 @@ char *read_input_line(void)
 
 void print_help(void)
 {
-    printf("Mathematical Calculator with Function Support\n\n");
+    printf("High-Precision Mathematical Calculator with Function Support\n\n");
 
 #ifdef HAVE_READLINE
     printf("Navigation:\n");
@@ -106,12 +112,22 @@ void print_help(void)
     printf("  Ctrl+L        -> Clear screen\n\n");
 #endif
 
+    printf("Precision Commands:\n");
+    printf("  precision           -> Show current precision\n");
+    printf("  precision <bits>    -> Set precision (53-8192 bits)\n");
+    printf("  test                -> Test high precision arithmetic\n\n");
+
     printf("Basic operations:\n");
     printf("  2+3*4         -> 14\n");
     printf("  2(3+4)        -> 14 (implicit multiplication)\n");
     printf("  (3+4)(2+1)    -> 21\n");
     printf("  2^3^2         -> 512 (right-associative)\n");
     printf("  -5+3          -> -2\n\n");
+
+    printf("High precision examples:\n");
+    printf("  1+1e-30       -> Shows tiny differences\n");
+    printf("  pi*e^100      -> Very large precise calculations\n");
+    printf("  sqrt(2)       -> High precision square root\n\n");
 
     printf("Scientific notation:\n");
     printf("  1.5e10        -> 15000000000\n");
@@ -124,32 +140,32 @@ void print_help(void)
     printf("  sin(pi/2)     -> 1\n");
     printf("  cos(0)        -> 1\n");
     printf("  tan(pi/4)     -> 1\n");
-    printf("  asin(1)       -> %g (pi/2)\n", 3.14159265 / 2);
-    printf("  acos(0)       -> %g (pi/2)\n", 3.14159265 / 2);
-    printf("  atan(1)       -> %g (pi/4)\n", 3.14159265 / 4);
-    printf("  atan2(1,1)    -> %g (pi/4)\n\n", 3.14159265 / 4);
+    printf("  asin(1)       -> pi/2\n");
+    printf("  acos(0)       -> pi/2\n");
+    printf("  atan(1)       -> pi/4\n");
+    printf("  atan2(1,1)    -> pi/4\n\n");
 
     printf("Hyperbolic functions:\n");
-    printf("  sinh(1)       -> %g\n", 1.1752);
+    printf("  sinh(1)       -> Hyperbolic sine\n");
     printf("  cosh(0)       -> 1\n");
     printf("  tanh(0)       -> 0\n");
-    printf("  asinh(1)      -> %g\n", 0.8814);
-    printf("  acosh(2)      -> %g\n", 1.3170);
-    printf("  atanh(0.5)    -> %g\n\n", 0.5493);
+    printf("  asinh(1)      -> Inverse hyperbolic sine\n");
+    printf("  acosh(2)      -> Inverse hyperbolic cosine\n");
+    printf("  atanh(0.5)    -> Inverse hyperbolic tangent\n\n");
 
     printf("Other functions:\n");
     printf("  sqrt(16)      -> 4\n");
     printf("  log(e)        -> 1 (natural log)\n");
     printf("  log10(100)    -> 2\n");
-    printf("  exp(1)        -> %g (e)\n", 2.7183);
+    printf("  exp(1)        -> e\n");
     printf("  abs(-5)       -> 5\n");
     printf("  floor(3.7)    -> 3\n");
     printf("  ceil(3.2)     -> 4\n");
     printf("  pow(2,3)      -> 8\n\n");
 
     printf("Constants:\n");
-    printf("  pi            -> %g\n", 3.14159265);
-    printf("  e             -> %g\n\n", 2.71828183);
+    printf("  pi            -> High precision π\n");
+    printf("  e             -> High precision e\n\n");
 
     printf("Comparison operators:\n");
     printf("  5>3           -> 1 (true)\n");
@@ -160,27 +176,33 @@ void print_help(void)
     printf("  sin(pi/6)*2   -> 1\n");
     printf("  sqrt(pow(3,2)+pow(4,2)) -> 5\n");
     printf("  log(exp(2))   -> 2\n");
-    printf("  2*pi*sqrt(2)  -> (using constants)\n");
+    printf("  2*pi*sqrt(2)  -> High precision result\n");
     printf("  1.5e10/3e8    -> 50 (scientific notation)\n\n");
 }
 
 int main(int argc, char *argv[])
 {
+    // Initialize MPFR with default precision
+    mpfr_set_default_prec(DEFAULT_PRECISION);
+
     char *input = NULL;
 
 #ifdef HAVE_READLINE
-    printf("Advanced Mathematical Calculator (with readline support)\n");
-    printf("Type 'quit' to exit, 'help' for examples\n");
-    printf("Use Up/Down arrows to browse history\n\n");
+    printf("High-Precision Mathematical Calculator (with readline support)\n");
+    printf("Type 'quit' to exit, 'help' for examples, 'precision <bits>' to set precision\n");
+    printf("Use Up/Down arrows to browse history\n");
 #else
-    printf("Advanced Mathematical Calculator\n");
-    printf("Type 'quit' to exit, 'help' for examples\n");
-    printf("Note: Compile with -DHAVE_READLINE -lreadline for history support\n\n");
+    printf("High-Precision Mathematical Calculator\n");
+    printf("Type 'quit' to exit, 'help' for examples, 'precision <bits>' to set precision\n");
+    printf("Note: Compile with -DHAVE_READLINE -lreadline for history support\n");
 #endif
+
+    print_precision_info();
+    printf("\n");
 
     while (1)
     {
-        // Read input line (readline automatically handles previous input)
+        // Read input line
         input = read_input_line();
         if (!input)
         {
@@ -204,6 +226,70 @@ int main(int argc, char *argv[])
         if (strcmp(input, "help") == 0)
         {
             print_help();
+            free(input);
+            continue;
+        }
+
+        if (strcmp(input, "precision") == 0)
+        {
+            print_precision_info();
+            free(input);
+            continue;
+        }
+
+        // Handle precision setting
+        if (strncmp(input, "precision ", 10) == 0)
+        {
+            long new_prec = strtol(input + 10, NULL, 10);
+            if (new_prec > 0)
+            {
+                set_precision((mpfr_prec_t)new_prec);
+                print_precision_info();
+            }
+            else
+            {
+                printf("Invalid precision value\n");
+            }
+            free(input);
+            continue;
+        }
+
+        // Test command to verify high precision
+        if (strcmp(input, "test") == 0)
+        {
+            printf("Testing high precision arithmetic:\n");
+            
+            mpfr_t one, small, result_test;
+            mpfr_init2(one, global_precision);
+            mpfr_init2(small, global_precision);
+            mpfr_init2(result_test, global_precision);
+            
+            // Test 1: 1 + 1e-30
+            mpfr_set_d(one, 1.0, global_rounding);
+            mpfr_set_str(small, "1e-30", 10, global_rounding);
+            mpfr_add(result_test, one, small, global_rounding);
+            
+            long decimal_digits = (long)(global_precision * 0.30103);
+            if (decimal_digits < 35) decimal_digits = 35;
+            
+            printf("1 + 1e-30 = ");
+            mpfr_printf("%.*Rf\n", (int)decimal_digits, result_test);
+            
+            // Test 2: High precision pi
+            mpfr_const_pi(result_test, global_rounding);
+            printf("π = ");
+            mpfr_printf("%.*Rf\n", (int)decimal_digits, result_test);
+            
+            // Test 3: High precision e
+            mpfr_set_d(result_test, 1.0, global_rounding);
+            mpfr_exp(result_test, result_test, global_rounding);
+            printf("e = ");
+            mpfr_printf("%.*Rf\n", (int)decimal_digits, result_test);
+            
+            mpfr_clear(one);
+            mpfr_clear(small);
+            mpfr_clear(result_test);
+            
             free(input);
             continue;
         }
@@ -259,19 +345,15 @@ int main(int argc, char *argv[])
         printf("\n");
 #endif
 
-        // Evaluate and print result
-        double result = evaluate_ast(ast);
+        // Evaluate with high precision
+        mpfr_t result;
+        mpfr_init2(result, global_precision);
+        evaluate_ast(result, ast);
 
-        // Print as integer if the result is a whole number and reasonable
-        if (result == (int)result && result <= INT_MAX && result >= INT_MIN)
-        {
-            printf("= %d\n", (int)result);
-        }
-        else
-        {
-            printf("= %g\n", result);
-        }
+        // Print result
+        print_mpfr_smart(result);
 
+        mpfr_clear(result);
         free_ast(ast);
         free(input);
     }
@@ -281,6 +363,8 @@ int main(int argc, char *argv[])
     clear_history();
 #endif
 
+    // Cleanup MPFR
+    mpfr_free_cache();
     printf("Goodbye!\n");
     return 0;
 }

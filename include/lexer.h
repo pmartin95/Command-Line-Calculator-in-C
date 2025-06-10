@@ -66,6 +66,7 @@ typedef struct
         double float_value;
         char *string_value; // For identifiers
     };
+    char *number_string; // Store original number string for MPFR parsing
 } Token;
 
 typedef struct

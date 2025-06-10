@@ -2,6 +2,11 @@
 #define __PARSER__
 
 #include "lexer.h"
+#include <mpfr.h>
+
+#define DEFAULT_PRECISION 256 // bits of precision (roughly 77 decimal digits)
+#define MIN_PRECISION 53      // double precision
+#define MAX_PRECISION 8192    // reasonable upper limit
 
 typedef enum
 {
@@ -19,8 +24,8 @@ typedef struct ASTNode
     {
         struct
         {
-            double value;
-            int is_int; // Track if originally an integer
+            mpfr_t value; // High precision number
+            int is_int;   // Track if originally an integer
         } number;
         struct
         {
@@ -50,11 +55,21 @@ typedef struct
 {
     Lexer *lexer;
     Token current_token;
-    Token previous_token; // Track previous token for implicit multiplication
-    int recursion_depth;  // Added for recursion depth tracking
-    int max_depth;        // Added for maximum recursion depth
-    int error_occurred;   // Added for error state tracking
+    Token previous_token;
+    int recursion_depth;
+    int max_depth;
+    int error_occurred;
+    mpfr_prec_t precision; // Current precision setting
 } Parser;
+
+// Global precision settings
+extern mpfr_prec_t global_precision;
+extern mpfr_rnd_t global_rounding;
+
+// Precision control
+void set_precision(mpfr_prec_t prec);
+mpfr_prec_t get_precision(void);
+void print_precision_info(void);
 
 // Parser functions
 void init_parser(Parser *parser, Lexer *lexer);
@@ -72,7 +87,7 @@ ASTNode *parse_primary(Parser *parser);
 ASTNode *parse_function_call(Parser *parser, TokenType func_type);
 
 // AST creation helpers
-ASTNode *create_number_node(double value, int is_int);
+ASTNode *create_number_node_mpfr(const char *str, int is_int);
 ASTNode *create_binop_node(TokenType op, ASTNode *left, ASTNode *right);
 ASTNode *create_unary_node(TokenType op, ASTNode *operand);
 ASTNode *create_function_node(TokenType func_type, ASTNode **args, int arg_count);
@@ -82,10 +97,13 @@ ASTNode *create_constant_node(TokenType const_type);
 void free_ast(ASTNode *node);
 
 // Evaluation (made const-correct)
-double evaluate_ast(const ASTNode *node);
+void evaluate_ast(mpfr_t result, const ASTNode *node);
 
 // Helper functions
 int is_function_token(TokenType type);
 int is_constant_token(TokenType type);
+
+void print_mpfr_result(const mpfr_t value, int original_is_int);
+void print_mpfr_smart(const mpfr_t value);
 
 #endif
