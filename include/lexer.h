@@ -24,7 +24,7 @@ typedef enum
     TOKEN_GT,    // >
     TOKEN_GTE,   // >=
     TOKEN_COMMA, // , for multi-argument functions
-    
+
     // Mathematical functions
     TOKEN_SIN,
     TOKEN_COS,
@@ -47,11 +47,11 @@ typedef enum
     TOKEN_FLOOR,
     TOKEN_CEIL,
     TOKEN_POW,
-    
+
     // Mathematical constants
     TOKEN_PI,
     TOKEN_E,
-    
+
     TOKEN_IDENTIFIER, // For unrecognized function names
     TOKEN_EOF,
     TOKEN_INVALID
@@ -77,7 +77,8 @@ typedef struct
 } Lexer;
 
 // Function to check if a string is a known function or constant
-typedef struct {
+typedef struct
+{
     const char *name;
     TokenType token;
     int arg_count; // Number of arguments (-1 for constants)
@@ -86,6 +87,7 @@ typedef struct {
 void init_lexer(Lexer *lexer, const char *input);
 void advance(Lexer *lexer);
 char peek(Lexer *lexer);
+char peek_ahead(Lexer *lexer, int offset);
 void skip_whitespace(Lexer *lexer);
 Token lex_number(Lexer *lexer);
 Token lex_identifier(Lexer *lexer);
