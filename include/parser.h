@@ -7,7 +7,9 @@ typedef enum
 {
     NODE_NUMBER,
     NODE_BINOP,
-    NODE_UNARY
+    NODE_UNARY,
+    NODE_FUNCTION,
+    NODE_CONSTANT
 } NodeType;
 
 typedef struct ASTNode
@@ -31,6 +33,16 @@ typedef struct ASTNode
             TokenType op;
             struct ASTNode *operand;
         } unary;
+        struct
+        {
+            TokenType func_type;
+            struct ASTNode **args;
+            int arg_count;
+        } function;
+        struct
+        {
+            TokenType const_type;
+        } constant;
     };
 } ASTNode;
 
@@ -57,16 +69,23 @@ ASTNode *parse_factor(Parser *parser);
 ASTNode *parse_power(Parser *parser);
 ASTNode *parse_unary(Parser *parser);
 ASTNode *parse_primary(Parser *parser);
+ASTNode *parse_function_call(Parser *parser, TokenType func_type);
 
 // AST creation helpers
 ASTNode *create_number_node(double value, int is_int);
 ASTNode *create_binop_node(TokenType op, ASTNode *left, ASTNode *right);
 ASTNode *create_unary_node(TokenType op, ASTNode *operand);
+ASTNode *create_function_node(TokenType func_type, ASTNode **args, int arg_count);
+ASTNode *create_constant_node(TokenType const_type);
 
 // AST cleanup
 void free_ast(ASTNode *node);
 
 // Evaluation (made const-correct)
 double evaluate_ast(const ASTNode *node);
+
+// Helper functions
+int is_function_token(TokenType type);
+int is_constant_token(TokenType type);
 
 #endif

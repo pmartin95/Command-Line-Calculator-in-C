@@ -7,6 +7,25 @@
 // Maximum recursion depth to prevent stack overflow
 #define MAX_RECURSION_DEPTH 100
 
+// Mathematical constants
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+#ifndef M_E
+#define M_E 2.71828182845904523536
+#endif
+
+int is_function_token(TokenType type)
+{
+    return (type >= TOKEN_SIN && type <= TOKEN_POW);
+}
+
+int is_constant_token(TokenType type)
+{
+    return (type == TOKEN_PI || type == TOKEN_E);
+}
+
 void init_parser(Parser *parser, Lexer *lexer)
 {
     if (!parser) return;
@@ -27,6 +46,9 @@ void init_parser(Parser *parser, Lexer *lexer)
 void parser_advance(Parser *parser)
 {
     if (!parser || !parser->lexer) return;
+    
+    // Free the previous token if it's an identifier
+    free_token(&parser->previous_token);
     
     parser->previous_token = parser->current_token;
     parser->current_token = get_next_token(parser->lexer);
@@ -49,7 +71,17 @@ int should_insert_multiplication(Parser *parser)
         (prev == TOKEN_RPAREN && (curr == TOKEN_INT || curr == TOKEN_FLOAT)) ||
         // Number followed by number (rare but handle it)
         ((prev == TOKEN_INT || prev == TOKEN_FLOAT) && 
-         (curr == TOKEN_INT || curr == TOKEN_FLOAT))
+         (curr == TOKEN_INT || curr == TOKEN_FLOAT)) ||
+        // Number followed by function
+        ((prev == TOKEN_INT || prev == TOKEN_FLOAT) && is_function_token(curr)) ||
+        // ')' followed by function
+        (prev == TOKEN_RPAREN && is_function_token(curr)) ||
+        // Number or ')' followed by constant
+        ((prev == TOKEN_INT || prev == TOKEN_FLOAT || prev == TOKEN_RPAREN) && 
+         is_constant_token(curr)) ||
+        // Constant followed by number or '('
+        (is_constant_token(prev) && 
+         (curr == TOKEN_INT || curr == TOKEN_FLOAT || curr == TOKEN_LPAREN))
     );
 }
 
@@ -69,7 +101,6 @@ ASTNode *create_number_node(double value, int is_int)
 ASTNode *create_binop_node(TokenType op, ASTNode *left, ASTNode *right)
 {
     if (!left || !right) {
-        // Clean up any allocated nodes
         free_ast(left);
         free_ast(right);
         return NULL;
@@ -107,12 +138,50 @@ ASTNode *create_unary_node(TokenType op, ASTNode *operand)
     return node;
 }
 
+ASTNode *create_function_node(TokenType func_type, ASTNode **args, int arg_count)
+{
+    if (!args && arg_count > 0) {
+        return NULL;
+    }
+    
+    ASTNode *node = malloc(sizeof(ASTNode));
+    if (!node) {
+        fprintf(stderr, "Memory allocation failed\n");
+        if (args) {
+            for (int i = 0; i < arg_count; i++) {
+                free_ast(args[i]);
+            }
+            free(args);
+        }
+        return NULL;
+    }
+    
+    node->type = NODE_FUNCTION;
+    node->function.func_type = func_type;
+    node->function.args = args;
+    node->function.arg_count = arg_count;
+    return node;
+}
+
+ASTNode *create_constant_node(TokenType const_type)
+{
+    ASTNode *node = malloc(sizeof(ASTNode));
+    if (!node) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return NULL;
+    }
+    node->type = NODE_CONSTANT;
+    node->constant.const_type = const_type;
+    return node;
+}
+
 void free_ast(ASTNode *node)
 {
     if (!node) return;
     
     switch (node->type) {
     case NODE_NUMBER:
+    case NODE_CONSTANT:
         break;
     case NODE_BINOP:
         free_ast(node->binop.left);
@@ -120,6 +189,14 @@ void free_ast(ASTNode *node)
         break;
     case NODE_UNARY:
         free_ast(node->unary.operand);
+        break;
+    case NODE_FUNCTION:
+        if (node->function.args) {
+            for (int i = 0; i < node->function.arg_count; i++) {
+                free_ast(node->function.args[i]);
+            }
+            free(node->function.args);
+        }
         break;
     }
     free(node);
@@ -331,6 +408,87 @@ static ASTNode *parse_unary_impl(Parser *parser)
     return parse_primary_impl(parser);
 }
 
+ASTNode *parse_function_call(Parser *parser, TokenType func_type)
+{
+    int expected_args = get_function_arg_count(func_type);
+    
+    // Expect opening parenthesis
+    if (parser->current_token.type != TOKEN_LPAREN) {
+        fprintf(stderr, "Expected '(' after function %s\n", get_function_name(func_type));
+        parser->error_occurred = 1;
+        return NULL;
+    }
+    parser_advance(parser); // consume '('
+    
+    // Parse arguments
+    ASTNode **args = NULL;
+    int arg_count = 0;
+    
+    if (expected_args > 0) {
+        args = malloc(expected_args * sizeof(ASTNode*));
+        if (!args) {
+            fprintf(stderr, "Memory allocation failed\n");
+            parser->error_occurred = 1;
+            return NULL;
+        }
+        
+        // Initialize to NULL for safe cleanup
+        for (int i = 0; i < expected_args; i++) {
+            args[i] = NULL;
+        }
+        
+        // Parse first argument
+        args[0] = parse_expression_impl(parser);
+        if (!args[0] || parser->error_occurred) {
+            free(args);
+            return NULL;
+        }
+        arg_count = 1;
+        
+        // Parse remaining arguments
+        while (arg_count < expected_args && parser->current_token.type == TOKEN_COMMA) {
+            parser_advance(parser); // consume ','
+            args[arg_count] = parse_expression_impl(parser);
+            if (!args[arg_count] || parser->error_occurred) {
+                for (int i = 0; i < arg_count; i++) {
+                    free_ast(args[i]);
+                }
+                free(args);
+                return NULL;
+            }
+            arg_count++;
+        }
+        
+        // Check if we have the right number of arguments
+        if (arg_count != expected_args) {
+            fprintf(stderr, "Function %s expects %d arguments, got %d\n", 
+                    get_function_name(func_type), expected_args, arg_count);
+            parser->error_occurred = 1;
+            for (int i = 0; i < arg_count; i++) {
+                free_ast(args[i]);
+            }
+            free(args);
+            return NULL;
+        }
+    }
+    
+    // Expect closing parenthesis
+    if (parser->current_token.type != TOKEN_RPAREN) {
+        fprintf(stderr, "Expected ')' after function arguments\n");
+        parser->error_occurred = 1;
+        if (args) {
+            for (int i = 0; i < arg_count; i++) {
+                free_ast(args[i]);
+            }
+            free(args);
+        }
+        return NULL;
+    }
+    parser_advance(parser); // consume ')'
+    
+    return create_function_node(func_type, args, arg_count);
+}
+
 ASTNode *parse_primary(Parser *parser)
 {
     CHECK_RECURSION_DEPTH(parser, "parse_primary");
@@ -367,12 +525,28 @@ static ASTNode *parse_primary_impl(Parser *parser)
         return expr;
     }
     
+    case TOKEN_PI:
+    case TOKEN_E:
+        parser_advance(parser);
+        return create_constant_node(token.type);
+    
     case TOKEN_INVALID:
         fprintf(stderr, "Invalid token encountered\n");
         parser->error_occurred = 1;
         return NULL;
         
+    case TOKEN_IDENTIFIER:
+        fprintf(stderr, "Unknown function or variable: %s\n", token.string_value);
+        parser->error_occurred = 1;
+        return NULL;
+        
     default:
+        // Check if it's a function
+        if (is_function_token(token.type)) {
+            parser_advance(parser);
+            return parse_function_call(parser, token.type);
+        }
+        
         fprintf(stderr, "Unexpected token: %s\n", token_type_str(token.type));
         parser->error_occurred = 1;
         return NULL;
@@ -386,6 +560,17 @@ double evaluate_ast(const ASTNode *node)
     switch (node->type) {
     case NODE_NUMBER:
         return node->number.value;
+        
+    case NODE_CONSTANT:
+        switch (node->constant.const_type) {
+        case TOKEN_PI:
+            return M_PI;
+        case TOKEN_E:
+            return M_E;
+        default:
+            fprintf(stderr, "Unknown constant\n");
+            return 0.0;
+        }
         
     case NODE_BINOP: {
         double left = evaluate_ast(node->binop.left);
@@ -445,6 +630,126 @@ double evaluate_ast(const ASTNode *node)
         case TOKEN_MINUS: return -operand;
         default:
             fprintf(stderr, "Unknown unary operator\n");
+            return 0.0;
+        }
+    }
+    
+    case NODE_FUNCTION: {
+        // Evaluate all arguments first
+        double args[2]; // Maximum 2 arguments for any function we support
+        for (int i = 0; i < node->function.arg_count; i++) {
+            args[i] = evaluate_ast(node->function.args[i]);
+        }
+        
+        switch (node->function.func_type) {
+        // Trigonometric functions
+        case TOKEN_SIN:
+            return sin(args[0]);
+        case TOKEN_COS:
+            return cos(args[0]);
+        case TOKEN_TAN:
+            return tan(args[0]);
+            
+        // Inverse trigonometric functions
+        case TOKEN_ASIN:
+            if (args[0] < -1.0 || args[0] > 1.0) {
+                fprintf(stderr, "Domain error: asin argument must be in [-1, 1]\n");
+                return 0.0;
+            }
+            return asin(args[0]);
+        case TOKEN_ACOS:
+            if (args[0] < -1.0 || args[0] > 1.0) {
+                fprintf(stderr, "Domain error: acos argument must be in [-1, 1]\n");
+                return 0.0;
+            }
+            return acos(args[0]);
+        case TOKEN_ATAN:
+            return atan(args[0]);
+        case TOKEN_ATAN2:
+            return atan2(args[0], args[1]);
+            
+        // Hyperbolic functions
+        case TOKEN_SINH:
+            return sinh(args[0]);
+        case TOKEN_COSH:
+            return cosh(args[0]);
+        case TOKEN_TANH:
+            return tanh(args[0]);
+            
+        // Inverse hyperbolic functions
+        case TOKEN_ASINH:
+            return asinh(args[0]);
+        case TOKEN_ACOSH:
+            if (args[0] < 1.0) {
+                fprintf(stderr, "Domain error: acosh argument must be >= 1\n");
+                return 0.0;
+            }
+            return acosh(args[0]);
+        case TOKEN_ATANH:
+            if (args[0] <= -1.0 || args[0] >= 1.0) {
+                fprintf(stderr, "Domain error: atanh argument must be in (-1, 1)\n");
+                return 0.0;
+            }
+            return atanh(args[0]);
+            
+        // Other mathematical functions
+        case TOKEN_SQRT:
+            if (args[0] < 0.0) {
+                fprintf(stderr, "Domain error: sqrt of negative number\n");
+                return 0.0;
+            }
+            return sqrt(args[0]);
+        case TOKEN_LOG:
+            if (args[0] <= 0.0) {
+                fprintf(stderr, "Domain error: log of non-positive number\n");
+                return 0.0;
+            }
+            return log(args[0]);
+        case TOKEN_LOG10:
+            if (args[0] <= 0.0) {
+                fprintf(stderr, "Domain error: log10 of non-positive number\n");
+                return 0.0;
+            }
+            return log10(args[0]);
+        case TOKEN_EXP: {
+            errno = 0;
+            double result = exp(args[0]);
+            if (errno == ERANGE || isinf(result)) {
+                fprintf(stderr, "Overflow in exp function\n");
+                return 0.0;
+            }
+            return result;
+        }
+        case TOKEN_ABS:
+            return fabs(args[0]);
+        case TOKEN_FLOOR:
+            return floor(args[0]);
+        case TOKEN_CEIL:
+            return ceil(args[0]);
+        case TOKEN_POW: {
+            // Handle domain errors for exponentiation
+            if (args[0] < 0 && args[1] != floor(args[1])) {
+                fprintf(stderr, "Complex result not supported (negative base with non-integer exponent)\n");
+                return 0.0;
+            }
+            
+            errno = 0;
+            double result = pow(args[0], args[1]);
+            
+            // Check for overflow/underflow
+            if (errno == ERANGE || isinf(result)) {
+                fprintf(stderr, "Result overflow in pow function\n");
+                return 0.0;
+            }
+            if (isnan(result)) {
+                fprintf(stderr, "Invalid mathematical operation in pow function\n");
+                return 0.0;
+            }
+            
+            return result;
+        }
+        default:
+            fprintf(stderr, "Unknown function\n");
             return 0.0;
         }
     }

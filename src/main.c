@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +23,10 @@ void print_ast(const ASTNode *node, int depth)
             printf("NUMBER: %g\n", node->number.value);
         break;
 
+    case NODE_CONSTANT:
+        printf("CONSTANT: %s\n", token_type_str(node->constant.const_type));
+        break;
+
     case NODE_BINOP:
         printf("BINOP: %s\n", token_type_str(node->binop.op));
         print_ast(node->binop.left, depth + 1);
@@ -33,6 +36,15 @@ void print_ast(const ASTNode *node, int depth)
     case NODE_UNARY:
         printf("UNARY: %s\n", token_type_str(node->unary.op));
         print_ast(node->unary.operand, depth + 1);
+        break;
+
+    case NODE_FUNCTION:
+        printf("FUNCTION: %s (%d args)\n", 
+               token_type_str(node->function.func_type), 
+               node->function.arg_count);
+        for (int i = 0; i < node->function.arg_count; i++) {
+            print_ast(node->function.args[i], depth + 1);
+        }
         break;
     }
 }
@@ -62,11 +74,64 @@ char *read_input_line(void)
     return line;
 }
 
+void print_help(void)
+{
+    printf("Mathematical Calculator with Function Support\n\n");
+    printf("Basic operations:\n");
+    printf("  2+3*4         -> 14\n");
+    printf("  2(3+4)        -> 14 (implicit multiplication)\n");
+    printf("  (3+4)(2+1)    -> 21\n");
+    printf("  2^3^2         -> 512 (right-associative)\n");
+    printf("  -5+3          -> -2\n\n");
+    
+    printf("Trigonometric functions (radians):\n");
+    printf("  sin(pi/2)     -> 1\n");
+    printf("  cos(0)        -> 1\n");
+    printf("  tan(pi/4)     -> 1\n");
+    printf("  asin(1)       -> %g (pi/2)\n", 3.14159265/2);
+    printf("  acos(0)       -> %g (pi/2)\n", 3.14159265/2);
+    printf("  atan(1)       -> %g (pi/4)\n", 3.14159265/4);
+    printf("  atan2(1,1)    -> %g (pi/4)\n\n", 3.14159265/4);
+    
+    printf("Hyperbolic functions:\n");
+    printf("  sinh(1)       -> %g\n", 1.1752);
+    printf("  cosh(0)       -> 1\n");
+    printf("  tanh(0)       -> 0\n");
+    printf("  asinh(1)      -> %g\n", 0.8814);
+    printf("  acosh(2)      -> %g\n", 1.3170);
+    printf("  atanh(0.5)    -> %g\n\n", 0.5493);
+    
+    printf("Other functions:\n");
+    printf("  sqrt(16)      -> 4\n");
+    printf("  log(e)        -> 1 (natural log)\n");
+    printf("  log10(100)    -> 2\n");
+    printf("  exp(1)        -> %g (e)\n", 2.7183);
+    printf("  abs(-5)       -> 5\n");
+    printf("  floor(3.7)    -> 3\n");
+    printf("  ceil(3.2)     -> 4\n");
+    printf("  pow(2,3)      -> 8\n\n");
+    
+    printf("Constants:\n");
+    printf("  pi            -> %g\n", 3.14159265);
+    printf("  e             -> %g\n\n", 2.71828183);
+    
+    printf("Comparison operators:\n");
+    printf("  5>3           -> 1 (true)\n");
+    printf("  2==2          -> 1 (true)\n");
+    printf("  3!=4          -> 1 (true)\n\n");
+    
+    printf("Examples combining functions:\n");
+    printf("  sin(pi/6)*2   -> 1\n");
+    printf("  sqrt(pow(3,2)+pow(4,2)) -> 5\n");
+    printf("  log(exp(2))   -> 2\n");
+    printf("  2*pi*sqrt(2)  -> (using constants)\n\n");
+}
+
 int main(int argc, char *argv[])
 {
     char *input = NULL;
 
-    printf("Command Line Calculator with Implicit Multiplication\n");
+    printf("Advanced Mathematical Calculator\n");
     printf("Type 'quit' to exit, 'help' for examples\n\n");
 
     while (1)
@@ -96,16 +161,7 @@ int main(int argc, char *argv[])
 
         if (strcmp(input, "help") == 0)
         {
-            printf("Examples:\n");
-            printf("  2+3*4         -> 14\n");
-            printf("  2(3+4)        -> 14 (implicit multiplication)\n");
-            printf("  (3+4)(2+1)    -> 21 (implicit multiplication)\n");
-            printf("  2^3^2         -> 512 (right-associative)\n");
-            printf("  -5+3          -> -2\n");
-            printf("  3.14*2        -> 6.28\n");
-            printf("  5>3           -> 1 (true)\n");
-            printf("  2==2          -> 1 (true)\n");
-            printf("  .5 + 3.       -> 3.5 (decimal numbers)\n");
+            print_help();
             continue;
         }
 
