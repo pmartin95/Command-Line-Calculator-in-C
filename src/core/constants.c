@@ -43,21 +43,11 @@ static void ensure_constant_precision(CachedConstant *constant)
 
 void constants_get_pi(mpfr_t result)
 {
-    if (!cached_pi.is_initialized || cached_pi.precision != global_precision)
-    {
-        if (cached_pi.is_initialized)
-        {
-            mpfr_clear(cached_pi.value);
-        }
-
-        mpfr_init2(cached_pi.value, global_precision);
-        mpfr_const_pi(cached_pi.value, global_rounding);
-        cached_pi.precision = global_precision;
-        cached_pi.is_initialized = 1;
-    }
-
+    ensure_constant_precision(&cached_pi);
+    mpfr_const_pi(cached_pi.value, global_rounding);
     mpfr_set(result, cached_pi.value, global_rounding);
 }
+
 
 
 void constants_get_e(mpfr_t result)
@@ -125,33 +115,22 @@ int constants_is_cached(const char *constant_name)
     return 0;
 }
 
+static void clear_cached(CachedConstant *constant)
+{
+    if (constant->is_initialized)
+    {
+        mpfr_clear(constant->value);
+        constant->is_initialized = 0;
+    }
+}
+
 void constants_clear_cache(void)
 {
-    if (cached_pi.is_initialized)
-    {
-        mpfr_clear(cached_pi.value);
-        cached_pi.is_initialized = 0;
-    }
-    if (cached_e.is_initialized)
-    {
-        mpfr_clear(cached_e.value);
-        cached_e.is_initialized = 0;
-    }
-    if (cached_ln2.is_initialized)
-    {
-        mpfr_clear(cached_ln2.value);
-        cached_ln2.is_initialized = 0;
-    }
-    if (cached_ln10.is_initialized)
-    {
-        mpfr_clear(cached_ln10.value);
-        cached_ln10.is_initialized = 0;
-    }
-    if (cached_gamma.is_initialized)
-    {
-        mpfr_clear(cached_gamma.value);
-        cached_gamma.is_initialized = 0;
-    }
+    clear_cached(&cached_pi);
+    clear_cached(&cached_e);
+    clear_cached(&cached_ln2);
+    clear_cached(&cached_ln10);
+    clear_cached(&cached_gamma);
 }
 
 void constants_cleanup(void)
