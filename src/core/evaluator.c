@@ -165,6 +165,7 @@ static void evaluator_eval_function(mpfr_t result, const ASTNode *node)
     }
 }
 
+//TODO
 int evaluator_check_domain(const ASTNode *node)
 {
     // This would recursively check if evaluation would cause domain errors
