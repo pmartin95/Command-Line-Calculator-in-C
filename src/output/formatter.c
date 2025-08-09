@@ -114,7 +114,8 @@ static void formatter_print_fixed(const mpfr_t value)
 
 static void formatter_print_smart_impl(const mpfr_t value)
 {
-    const int MAX_DIGITS = 50;  // Hard limit on digits to avoid flooding
+    const int MAX_DIGITS = 50; // Hard limit on digits to avoid flooding
+    const long MAX_ZERO_RUN = 500;
     mpfr_exp_t exp;
     char *str = mpfr_get_str(NULL, &exp, 10, MAX_DIGITS, value, global_rounding);
     
@@ -123,6 +124,13 @@ static void formatter_print_smart_impl(const mpfr_t value)
         return;
     }
 
+    // If exponent is too big/small, bail to scientific
+    if (exp > MAX_ZERO_RUN || exp < -MAX_ZERO_RUN)
+    {
+        mpfr_free_str(str);
+        formatter_print_scientific(value);
+        return;
+    }
     int is_negative = (str[0] == '-');
     char *digits = is_negative ? str + 1 : str;
 
