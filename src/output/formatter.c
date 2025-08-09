@@ -88,8 +88,8 @@ void formatter_print_number(const mpfr_t value, NumberFormat format)
 static void formatter_print_scientific(const mpfr_t value)
 {
     long decimal_digits = get_decimal_digits();
-    if (decimal_digits > 200)
-        decimal_digits = 200;
+    if (max_decimal_places > 0 && max_decimal_places < decimal_digits)
+        decimal_digits = max_decimal_places;
 
     char *str = NULL;
     mpfr_exp_t exp;
@@ -126,10 +126,12 @@ static void formatter_print_fixed(const mpfr_t value)
 
 static void formatter_print_smart_impl(const mpfr_t value)
 {
-    const int MAX_DIGITS = 50; // Hard limit on digits to avoid flooding
+    long decimal_digits = get_decimal_digits();
+    if (max_decimal_places > 0 && max_decimal_places < decimal_digits)
+        decimal_digits = max_decimal_places;
     const long MAX_ZERO_RUN = 500;
     mpfr_exp_t exp;
-    char *str = mpfr_get_str(NULL, &exp, 10, MAX_DIGITS, value, global_rounding);
+    char *str = mpfr_get_str(NULL, &exp, 10, decimal_digits, value, global_rounding);
 
     if (!str)
     {
