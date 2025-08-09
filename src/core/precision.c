@@ -18,7 +18,7 @@ void set_precision(mpfr_prec_t prec)
         prec = MIN_PRECISION;
     if (prec > MAX_PRECISION)
         prec = MAX_PRECISION;
-    
+
     global_precision = prec;
     mpfr_set_default_prec(prec);
 }

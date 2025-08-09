@@ -65,12 +65,15 @@ void function_table_init(void)
 
 const FunctionInfo *function_table_lookup(const char *name)
 {
-    if (!name) {
+    if (!name)
+    {
         return NULL;
     }
 
-    for (int i = 0; function_table[i].name != NULL; i++) {
-        if (strcmp(function_table[i].name, name) == 0) {
+    for (int i = 0; function_table[i].name != NULL; i++)
+    {
+        if (strcmp(function_table[i].name, name) == 0)
+        {
             return &function_table[i];
         }
     }
@@ -79,8 +82,10 @@ const FunctionInfo *function_table_lookup(const char *name)
 
 int function_table_get_arg_count(TokenType type)
 {
-    for (int i = 0; function_table[i].name != NULL; i++) {
-        if (function_table[i].token == type) {
+    for (int i = 0; function_table[i].name != NULL; i++)
+    {
+        if (function_table[i].token == type)
+        {
             return function_table[i].arg_count;
         }
     }
@@ -89,8 +94,10 @@ int function_table_get_arg_count(TokenType type)
 
 const char *function_table_get_name(TokenType type)
 {
-    for (int i = 0; function_table[i].name != NULL; i++) {
-        if (function_table[i].token == type) {
+    for (int i = 0; function_table[i].name != NULL; i++)
+    {
+        if (function_table[i].token == type)
+        {
             return function_table[i].name;
         }
     }
@@ -101,17 +108,20 @@ int function_table_needs_parentheses(TokenType type)
 {
     // Constants don't need parentheses, functions do
     const FunctionInfo *info = NULL;
-    for (int i = 0; function_table[i].name != NULL; i++) {
-        if (function_table[i].token == type) {
+    for (int i = 0; function_table[i].name != NULL; i++)
+    {
+        if (function_table[i].token == type)
+        {
             info = &function_table[i];
             break;
         }
     }
-    
-    if (!info) {
+
+    if (!info)
+    {
         return 0;
     }
-    
+
     // If arg_count is -1, it's a constant
     return info->arg_count >= 0;
 }

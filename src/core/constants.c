@@ -48,8 +48,6 @@ void constants_get_pi(mpfr_t result)
     mpfr_set(result, cached_pi.value, global_rounding);
 }
 
-
-
 void constants_get_e(mpfr_t result)
 {
     ensure_constant_precision(&cached_e);

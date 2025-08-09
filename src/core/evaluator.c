@@ -18,13 +18,15 @@ static void evaluator_eval_function(mpfr_t result, const ASTNode *node);
 void evaluator_eval(mpfr_t result, const ASTNode *node)
 {
     evaluator_clear_error();
-    
-    if (!node) {
+
+    if (!node)
+    {
         mpfr_set_d(result, 0.0, global_rounding);
         return;
     }
 
-    switch (node->type) {
+    switch (node->type)
+    {
     case NODE_NUMBER:
         mpfr_set(result, node->number.value, global_rounding);
         break;
@@ -53,7 +55,8 @@ void evaluator_eval(mpfr_t result, const ASTNode *node)
 
 static void evaluator_eval_constant(mpfr_t result, TokenType const_type)
 {
-    switch (const_type) {
+    switch (const_type)
+    {
     case TOKEN_PI:
         constants_get_pi(result);
         break;
@@ -84,7 +87,8 @@ static void evaluator_eval_binop(mpfr_t result, const ASTNode *node)
     evaluator_eval(left, node->binop.left);
     evaluator_eval(right, node->binop.right);
 
-    switch (node->binop.op) {
+    switch (node->binop.op)
+    {
     case TOKEN_PLUS:
         mpfr_add(result, left, right, global_rounding);
         break;
@@ -95,10 +99,13 @@ static void evaluator_eval_binop(mpfr_t result, const ASTNode *node)
         mpfr_mul(result, left, right, global_rounding);
         break;
     case TOKEN_SLASH:
-        if (mpfr_zero_p(right)) {
+        if (mpfr_zero_p(right))
+        {
             snprintf(last_error, sizeof(last_error), "Division by zero");
             mpfr_set_d(result, 0.0, global_rounding);
-        } else {
+        }
+        else
+        {
             mpfr_div(result, left, right, global_rounding);
         }
         break;
@@ -138,7 +145,8 @@ static void evaluator_eval_unary(mpfr_t result, const ASTNode *node)
     mpfr_init2(operand, global_precision);
     evaluator_eval(operand, node->unary.operand);
 
-    switch (node->unary.op) {
+    switch (node->unary.op)
+    {
     case TOKEN_PLUS:
         mpfr_set(result, operand, global_rounding);
         break;
@@ -156,25 +164,28 @@ static void evaluator_eval_unary(mpfr_t result, const ASTNode *node)
 static void evaluator_eval_function(mpfr_t result, const ASTNode *node)
 {
     mpfr_t args[2]; // Max 2 args for current functions
-    for (int i = 0; i < node->function.arg_count; i++) {
+    for (int i = 0; i < node->function.arg_count; i++)
+    {
         mpfr_init2(args[i], global_precision);
         evaluator_eval(args[i], node->function.args[i]);
     }
 
     // Delegate to functions module
     int success = functions_eval(result, node->function.func_type, args, node->function.arg_count);
-    
-    if (!success && strict_mode) {
-        snprintf(last_error, sizeof(last_error), "Function evaluation failed: %s", 
-                functions_get_last_error());
+
+    if (!success && strict_mode)
+    {
+        snprintf(last_error, sizeof(last_error), "Function evaluation failed: %s",
+                 functions_get_last_error());
     }
 
-    for (int i = 0; i < node->function.arg_count; i++) {
+    for (int i = 0; i < node->function.arg_count; i++)
+    {
         mpfr_clear(args[i]);
     }
 }
 
-//TODO
+// TODO
 int evaluator_check_domain(const ASTNode *node)
 {
     // This would recursively check if evaluation would cause domain errors

@@ -3,9 +3,9 @@
 
 typedef enum
 {
-    REPL_CONTINUE,  // Continue processing input
-    REPL_EXIT,      // Exit the REPL
-    REPL_ERROR      // Error occurred
+    REPL_CONTINUE, // Continue processing input
+    REPL_EXIT,     // Exit the REPL
+    REPL_ERROR     // Error occurred
 } ReplResult;
 
 /**

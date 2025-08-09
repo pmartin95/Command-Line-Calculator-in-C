@@ -6,12 +6,14 @@
 
 ASTNode *ast_create_number(const char *str, int is_int)
 {
-    if (!str) {
+    if (!str)
+    {
         return NULL;
     }
 
     ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node) {
+    if (!node)
+    {
         fprintf(stderr, "Memory allocation failed\n");
         return NULL;
     }
@@ -24,7 +26,8 @@ ASTNode *ast_create_number(const char *str, int is_int)
 
     // Parse the string with MPFR
     int ret = mpfr_set_str(node->number.value, str, 10, global_rounding);
-    if (ret != 0) {
+    if (ret != 0)
+    {
         fprintf(stderr, "Failed to parse number: %s\n", str);
         mpfr_clear(node->number.value);
         free(node);
@@ -36,14 +39,16 @@ ASTNode *ast_create_number(const char *str, int is_int)
 
 ASTNode *ast_create_binop(TokenType op, ASTNode *left, ASTNode *right)
 {
-    if (!left || !right) {
+    if (!left || !right)
+    {
         ast_free(left);
         ast_free(right);
         return NULL;
     }
 
     ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node) {
+    if (!node)
+    {
         fprintf(stderr, "Memory allocation failed\n");
         ast_free(left);
         ast_free(right);
@@ -59,12 +64,14 @@ ASTNode *ast_create_binop(TokenType op, ASTNode *left, ASTNode *right)
 
 ASTNode *ast_create_unary(TokenType op, ASTNode *operand)
 {
-    if (!operand) {
+    if (!operand)
+    {
         return NULL;
     }
 
     ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node) {
+    if (!node)
+    {
         fprintf(stderr, "Memory allocation failed\n");
         ast_free(operand);
         return NULL;
@@ -79,10 +86,13 @@ ASTNode *ast_create_unary(TokenType op, ASTNode *operand)
 ASTNode *ast_create_function(TokenType func_type, ASTNode **args, int arg_count)
 {
     ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node) {
+    if (!node)
+    {
         fprintf(stderr, "Memory allocation failed\n");
-        if (args) {
-            for (int i = 0; i < arg_count; i++) {
+        if (args)
+        {
+            for (int i = 0; i < arg_count; i++)
+            {
                 ast_free(args[i]);
             }
             free(args);
@@ -100,7 +110,8 @@ ASTNode *ast_create_function(TokenType func_type, ASTNode **args, int arg_count)
 ASTNode *ast_create_constant(TokenType const_type)
 {
     ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node) {
+    if (!node)
+    {
         fprintf(stderr, "Memory allocation failed\n");
         return NULL;
     }
@@ -112,11 +123,13 @@ ASTNode *ast_create_constant(TokenType const_type)
 
 void ast_free(ASTNode *node)
 {
-    if (!node) {
+    if (!node)
+    {
         return;
     }
 
-    switch (node->type) {
+    switch (node->type)
+    {
     case NODE_NUMBER:
         mpfr_clear(node->number.value);
         break;
@@ -130,8 +143,10 @@ void ast_free(ASTNode *node)
         ast_free(node->unary.operand);
         break;
     case NODE_FUNCTION:
-        if (node->function.args) {
-            for (int i = 0; i < node->function.arg_count; i++) {
+        if (node->function.args)
+        {
+            for (int i = 0; i < node->function.arg_count; i++)
+            {
                 ast_free(node->function.args[i]);
             }
             free(node->function.args);
@@ -143,20 +158,26 @@ void ast_free(ASTNode *node)
 
 void ast_print(const ASTNode *node, int depth)
 {
-    if (!node) {
+    if (!node)
+    {
         return;
     }
 
-    for (int i = 0; i < depth; i++) {
+    for (int i = 0; i < depth; i++)
+    {
         printf("  ");
     }
 
-    switch (node->type) {
+    switch (node->type)
+    {
     case NODE_NUMBER:
-        if (node->number.is_int && mpfr_fits_slong_p(node->number.value, global_rounding)) {
+        if (node->number.is_int && mpfr_fits_slong_p(node->number.value, global_rounding))
+        {
             long val = mpfr_get_si(node->number.value, global_rounding);
             printf("NUMBER: %ld\n", val);
-        } else {
+        }
+        else
+        {
             mpfr_printf("NUMBER: %.6Rf\n", node->number.value);
         }
         break;
@@ -180,7 +201,8 @@ void ast_print(const ASTNode *node, int depth)
         printf("FUNCTION: %s (%d args)\n",
                token_type_str(node->function.func_type),
                node->function.arg_count);
-        for (int i = 0; i < node->function.arg_count; i++) {
+        for (int i = 0; i < node->function.arg_count; i++)
+        {
             ast_print(node->function.args[i], depth + 1);
         }
         break;

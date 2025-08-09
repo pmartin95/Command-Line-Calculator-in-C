@@ -17,8 +17,10 @@ static Token lexer_lex_identifier(Lexer *lexer);
 
 void lexer_init(Lexer *lexer, const char *input)
 {
-    if (!lexer || !input) {
-        if (lexer) {
+    if (!lexer || !input)
+    {
+        if (lexer)
+        {
             lexer->text = "";
             lexer->pos = 0;
             lexer->current_char = '\0';
@@ -32,7 +34,8 @@ void lexer_init(Lexer *lexer, const char *input)
     lexer->input_length = strlen(input);
 
     // Reject overly long input
-    if (lexer->input_length > MAX_INPUT_LENGTH) {
+    if (lexer->input_length > MAX_INPUT_LENGTH)
+    {
         lexer->text = "";
         lexer->pos = 0;
         lexer->current_char = '\0';
@@ -45,21 +48,26 @@ void lexer_init(Lexer *lexer, const char *input)
 
 static void lexer_advance(Lexer *lexer)
 {
-    if (!lexer || lexer->pos >= lexer->input_length) {
+    if (!lexer || lexer->pos >= lexer->input_length)
+    {
         return;
     }
 
     lexer->pos++;
-    if (lexer->pos >= lexer->input_length) {
+    if (lexer->pos >= lexer->input_length)
+    {
         lexer->current_char = '\0';
-    } else {
+    }
+    else
+    {
         lexer->current_char = lexer->text[lexer->pos];
     }
 }
 
 char lexer_peek(Lexer *lexer)
 {
-    if (!lexer || lexer->pos + 1 >= lexer->input_length) {
+    if (!lexer || lexer->pos + 1 >= lexer->input_length)
+    {
         return '\0';
     }
     return lexer->text[lexer->pos + 1];
@@ -67,7 +75,8 @@ char lexer_peek(Lexer *lexer)
 
 char lexer_peek_ahead(Lexer *lexer, int offset)
 {
-    if (!lexer || offset < 0 || lexer->pos + offset >= lexer->input_length) {
+    if (!lexer || offset < 0 || lexer->pos + offset >= lexer->input_length)
+    {
         return '\0';
     }
     return lexer->text[lexer->pos + offset];
@@ -75,16 +84,19 @@ char lexer_peek_ahead(Lexer *lexer, int offset)
 
 static void lexer_skip_whitespace(Lexer *lexer)
 {
-    if (!lexer) return;
+    if (!lexer)
+        return;
 
-    while (lexer->current_char != '\0' && isspace(lexer->current_char)) {
+    while (lexer->current_char != '\0' && isspace(lexer->current_char))
+    {
         lexer_advance(lexer);
     }
 }
 
 static Token lexer_lex_number(Lexer *lexer)
 {
-    if (!lexer) {
+    if (!lexer)
+    {
         return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
     }
 
@@ -95,28 +107,35 @@ static Token lexer_lex_number(Lexer *lexer)
     int digit_count = 0;
 
     // Handle edge case: single dot without digits
-    if (lexer->current_char == '.' && !isdigit(lexer_peek(lexer))) {
+    if (lexer->current_char == '.' && !isdigit(lexer_peek(lexer)))
+    {
         return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
     }
 
     // Parse the integer/fractional part
     while ((isdigit(lexer->current_char) || lexer->current_char == '.') &&
-           lexer->current_char != '\0' && buf_idx < sizeof(buffer) - 1) {
-        
-        if (lexer->current_char == '.') {
-            if (has_dot) {
+           lexer->current_char != '\0' && buf_idx < sizeof(buffer) - 1)
+    {
+
+        if (lexer->current_char == '.')
+        {
+            if (has_dot)
+            {
                 // Multiple dots: invalid
                 return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
             }
 
             // Check for '.' not followed by digit (unless we already have digits)
             char next = lexer_peek(lexer);
-            if (!isdigit(next) && digit_count == 0) {
+            if (!isdigit(next) && digit_count == 0)
+            {
                 return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
             }
 
             has_dot = 1;
-        } else {
+        }
+        else
+        {
             digit_count++;
         }
 
@@ -125,19 +144,23 @@ static Token lexer_lex_number(Lexer *lexer)
     }
 
     // Must have at least one digit
-    if (digit_count == 0) {
+    if (digit_count == 0)
+    {
         return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
     }
 
     // Check for scientific notation
-    if (lexer->current_char == 'e' || lexer->current_char == 'E') {
+    if (lexer->current_char == 'e' || lexer->current_char == 'E')
+    {
         char next = lexer_peek(lexer);
         char after_next = lexer_peek_ahead(lexer, 2);
 
-        if (isdigit(next) || ((next == '+' || next == '-') && isdigit(after_next))) {
+        if (isdigit(next) || ((next == '+' || next == '-') && isdigit(after_next)))
+        {
             has_exponent = 1;
 
-            if (buf_idx >= sizeof(buffer) - 1) {
+            if (buf_idx >= sizeof(buffer) - 1)
+            {
                 return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
             }
 
@@ -146,8 +169,10 @@ static Token lexer_lex_number(Lexer *lexer)
             lexer_advance(lexer);
 
             // Handle optional sign
-            if (lexer->current_char == '+' || lexer->current_char == '-') {
-                if (buf_idx >= sizeof(buffer) - 1) {
+            if (lexer->current_char == '+' || lexer->current_char == '-')
+            {
+                if (buf_idx >= sizeof(buffer) - 1)
+                {
                     return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
                 }
                 buffer[buf_idx++] = lexer->current_char;
@@ -157,13 +182,15 @@ static Token lexer_lex_number(Lexer *lexer)
             // Parse exponent digits
             int exp_digit_count = 0;
             while (isdigit(lexer->current_char) && lexer->current_char != '\0' &&
-                   buf_idx < sizeof(buffer) - 1) {
+                   buf_idx < sizeof(buffer) - 1)
+            {
                 buffer[buf_idx++] = lexer->current_char;
                 exp_digit_count++;
                 lexer_advance(lexer);
             }
 
-            if (exp_digit_count == 0) {
+            if (exp_digit_count == 0)
+            {
                 return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
             }
         }
@@ -173,28 +200,35 @@ static Token lexer_lex_number(Lexer *lexer)
 
     // Create a copy of the number string
     char *number_str = malloc(strlen(buffer) + 1);
-    if (!number_str) {
+    if (!number_str)
+    {
         return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
     }
     strcpy(number_str, buffer);
 
     // Determine token type
-    if (has_dot || has_exponent) {
+    if (has_dot || has_exponent)
+    {
         errno = 0;
         double val = strtod(buffer, NULL);
-        if (errno == ERANGE || isinf(val) || isnan(val)) {
+        if (errno == ERANGE || isinf(val) || isnan(val))
+        {
             free(number_str);
             return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
         }
         return (Token){.type = TOKEN_FLOAT, .float_value = val, .number_string = number_str};
-    } else {
+    }
+    else
+    {
         errno = 0;
         long val = strtol(buffer, NULL, 10);
-        if (errno == ERANGE) {
+        if (errno == ERANGE)
+        {
             // Treat as float for MPFR processing
             return (Token){.type = TOKEN_FLOAT, .float_value = 0.0, .number_string = number_str};
         }
-        if (val > INT_MAX || val < INT_MIN) {
+        if (val > INT_MAX || val < INT_MIN)
+        {
             return (Token){.type = TOKEN_FLOAT, .float_value = (double)val, .number_string = number_str};
         }
         return (Token){.type = TOKEN_INT, .int_value = (int)val, .number_string = number_str};
@@ -203,7 +237,8 @@ static Token lexer_lex_number(Lexer *lexer)
 
 static Token lexer_lex_identifier(Lexer *lexer)
 {
-    if (!lexer) {
+    if (!lexer)
+    {
         return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
     }
 
@@ -212,7 +247,8 @@ static Token lexer_lex_identifier(Lexer *lexer)
 
     // Read alphanumeric characters and underscores
     while ((isalnum(lexer->current_char) || lexer->current_char == '_') &&
-           lexer->current_char != '\0' && buf_idx < sizeof(buffer) - 1) {
+           lexer->current_char != '\0' && buf_idx < sizeof(buffer) - 1)
+    {
         buffer[buf_idx++] = lexer->current_char;
         lexer_advance(lexer);
     }
@@ -221,13 +257,15 @@ static Token lexer_lex_identifier(Lexer *lexer)
 
     // Look up in function table
     const FunctionInfo *func_info = function_table_lookup(buffer);
-    if (func_info) {
+    if (func_info)
+    {
         return (Token){.type = func_info->token, .int_value = 0, .number_string = NULL};
     }
 
     // Unknown identifier - create a copy of the string
     char *str_copy = malloc(strlen(buffer) + 1);
-    if (!str_copy) {
+    if (!str_copy)
+    {
         return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
     }
     strcpy(str_copy, buffer);
@@ -237,26 +275,34 @@ static Token lexer_lex_identifier(Lexer *lexer)
 
 Token lexer_get_next_token(Lexer *lexer)
 {
-    if (!lexer) {
+    if (!lexer)
+    {
         return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
     }
 
-    while (lexer->current_char != '\0') {
-        if (isspace(lexer->current_char)) {
+    while (lexer->current_char != '\0')
+    {
+        if (isspace(lexer->current_char))
+        {
             lexer_skip_whitespace(lexer);
             continue;
         }
 
         // Handle numbers and standalone dots
-        if (isdigit(lexer->current_char)) {
+        if (isdigit(lexer->current_char))
+        {
             return lexer_lex_number(lexer);
         }
 
         // Handle dots that might start numbers
-        if (lexer->current_char == '.') {
-            if (isdigit(lexer_peek(lexer))) {
+        if (lexer->current_char == '.')
+        {
+            if (isdigit(lexer_peek(lexer)))
+            {
                 return lexer_lex_number(lexer);
-            } else {
+            }
+            else
+            {
                 // Standalone dot is invalid
                 lexer_advance(lexer);
                 return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
@@ -264,12 +310,14 @@ Token lexer_get_next_token(Lexer *lexer)
         }
 
         // Handle identifiers (function names, constants)
-        if (isalpha(lexer->current_char) || lexer->current_char == '_') {
+        if (isalpha(lexer->current_char) || lexer->current_char == '_')
+        {
             return lexer_lex_identifier(lexer);
         }
 
         // Handle operators and punctuation
-        switch (lexer->current_char) {
+        switch (lexer->current_char)
+        {
         case '+':
             lexer_advance(lexer);
             return (Token){.type = TOKEN_PLUS, .int_value = 0, .number_string = NULL};
@@ -295,7 +343,8 @@ Token lexer_get_next_token(Lexer *lexer)
             lexer_advance(lexer);
             return (Token){.type = TOKEN_COMMA, .int_value = 0, .number_string = NULL};
         case '=':
-            if (lexer_peek(lexer) == '=') {
+            if (lexer_peek(lexer) == '=')
+            {
                 lexer_advance(lexer);
                 lexer_advance(lexer);
                 return (Token){.type = TOKEN_EQ, .int_value = 0, .number_string = NULL};
@@ -304,7 +353,8 @@ Token lexer_get_next_token(Lexer *lexer)
             lexer_advance(lexer);
             return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
         case '!':
-            if (lexer_peek(lexer) == '=') {
+            if (lexer_peek(lexer) == '=')
+            {
                 lexer_advance(lexer);
                 lexer_advance(lexer);
                 return (Token){.type = TOKEN_NEQ, .int_value = 0, .number_string = NULL};
@@ -313,7 +363,8 @@ Token lexer_get_next_token(Lexer *lexer)
             lexer_advance(lexer);
             return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
         case '<':
-            if (lexer_peek(lexer) == '=') {
+            if (lexer_peek(lexer) == '=')
+            {
                 lexer_advance(lexer);
                 lexer_advance(lexer);
                 return (Token){.type = TOKEN_LTE, .int_value = 0, .number_string = NULL};
@@ -321,7 +372,8 @@ Token lexer_get_next_token(Lexer *lexer)
             lexer_advance(lexer);
             return (Token){.type = TOKEN_LT, .int_value = 0, .number_string = NULL};
         case '>':
-            if (lexer_peek(lexer) == '=') {
+            if (lexer_peek(lexer) == '=')
+            {
                 lexer_advance(lexer);
                 lexer_advance(lexer);
                 return (Token){.type = TOKEN_GTE, .int_value = 0, .number_string = NULL};
@@ -350,7 +402,8 @@ size_t lexer_get_position(Lexer *lexer)
 
 size_t lexer_remaining_length(Lexer *lexer)
 {
-    if (!lexer || lexer->pos >= lexer->input_length) {
+    if (!lexer || lexer->pos >= lexer->input_length)
+    {
         return 0;
     }
     return lexer->input_length - lexer->pos;

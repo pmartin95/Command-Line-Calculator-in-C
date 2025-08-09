@@ -19,7 +19,8 @@ static ASTNode *parse_primary_impl(Parser *parser);
 // Helper function for implicit multiplication detection
 static int should_insert_multiplication(Parser *parser)
 {
-    if (!parser) {
+    if (!parser)
+    {
         return 0;
     }
 
@@ -51,7 +52,8 @@ static int should_insert_multiplication(Parser *parser)
 
 void parser_init(Parser *parser, Lexer *lexer)
 {
-    if (!parser) return;
+    if (!parser)
+        return;
 
     parser->lexer = lexer;
     parser->previous_token = (Token){.type = TOKEN_INVALID};
@@ -59,16 +61,20 @@ void parser_init(Parser *parser, Lexer *lexer)
     parser->max_depth = MAX_RECURSION_DEPTH;
     parser->error_occurred = 0;
 
-    if (lexer) {
+    if (lexer)
+    {
         parser->current_token = lexer_get_next_token(lexer);
-    } else {
+    }
+    else
+    {
         parser->current_token = (Token){.type = TOKEN_EOF};
     }
 }
 
 void parser_advance(Parser *parser)
 {
-    if (!parser || !parser->lexer) return;
+    if (!parser || !parser->lexer)
+        return;
 
     // Free the previous token if needed
     token_free(&parser->previous_token);
@@ -78,21 +84,26 @@ void parser_advance(Parser *parser)
 }
 
 // Wrapper functions with recursion depth checking
-#define CHECK_RECURSION_DEPTH(parser, func_name) \
-    do { \
-        if (!parser) return NULL; \
-        if (parser->recursion_depth >= parser->max_depth) { \
+#define CHECK_RECURSION_DEPTH(parser, func_name)                                    \
+    do                                                                              \
+    {                                                                               \
+        if (!parser)                                                                \
+            return NULL;                                                            \
+        if (parser->recursion_depth >= parser->max_depth)                           \
+        {                                                                           \
             fprintf(stderr, "Maximum recursion depth exceeded in %s\n", func_name); \
-            parser->error_occurred = 1; \
-            return NULL; \
-        } \
-        parser->recursion_depth++; \
+            parser->error_occurred = 1;                                             \
+            return NULL;                                                            \
+        }                                                                           \
+        parser->recursion_depth++;                                                  \
     } while (0)
 
 #define RETURN_WITH_DEPTH_DECREMENT(parser, result) \
-    do { \
-        if (parser) parser->recursion_depth--; \
-        return result; \
+    do                                              \
+    {                                               \
+        if (parser)                                 \
+            parser->recursion_depth--;              \
+        return result;                              \
     } while (0)
 
 ASTNode *parser_parse_expression(Parser *parser)
@@ -117,19 +128,23 @@ ASTNode *parser_parse_comparison(Parser *parser)
 static ASTNode *parse_comparison_impl(Parser *parser)
 {
     ASTNode *left = parse_term_impl(parser);
-    if (!left || parser->error_occurred) return left;
+    if (!left || parser->error_occurred)
+        return left;
 
-    while (token_is_comparison_op(parser->current_token.type)) {
+    while (token_is_comparison_op(parser->current_token.type))
+    {
         TokenType op = parser->current_token.type;
         parser_advance(parser);
         ASTNode *right = parse_term_impl(parser);
-        if (!right || parser->error_occurred) {
+        if (!right || parser->error_occurred)
+        {
             ast_free(left);
             ast_free(right);
             return NULL;
         }
         left = ast_create_binop(op, left, right);
-        if (!left) return NULL;
+        if (!left)
+            return NULL;
     }
 
     return left;
@@ -145,20 +160,24 @@ ASTNode *parser_parse_term(Parser *parser)
 static ASTNode *parse_term_impl(Parser *parser)
 {
     ASTNode *left = parse_factor_impl(parser);
-    if (!left || parser->error_occurred) return left;
+    if (!left || parser->error_occurred)
+        return left;
 
     while (parser->current_token.type == TOKEN_PLUS ||
-           parser->current_token.type == TOKEN_MINUS) {
+           parser->current_token.type == TOKEN_MINUS)
+    {
         TokenType op = parser->current_token.type;
         parser_advance(parser);
         ASTNode *right = parse_factor_impl(parser);
-        if (!right || parser->error_occurred) {
+        if (!right || parser->error_occurred)
+        {
             ast_free(left);
             ast_free(right);
             return NULL;
         }
         left = ast_create_binop(op, left, right);
-        if (!left) return NULL;
+        if (!left)
+            return NULL;
     }
 
     return left;
@@ -174,7 +193,8 @@ ASTNode *parser_parse_factor(Parser *parser)
 static ASTNode *parse_factor_impl(Parser *parser)
 {
     ASTNode *left = parse_power_impl(parser);
-    if (!left || parser->error_occurred) return left;
+    if (!left || parser->error_occurred)
+        return left;
 
     // Handle explicit and implicit multiplication
     int implicit_mult_count = 0;
@@ -183,30 +203,37 @@ static ASTNode *parse_factor_impl(Parser *parser)
     while ((parser->current_token.type == TOKEN_STAR ||
             parser->current_token.type == TOKEN_SLASH ||
             should_insert_multiplication(parser)) &&
-           implicit_mult_count < max_implicit_mult) {
-        
+           implicit_mult_count < max_implicit_mult)
+    {
+
         TokenType op = parser->current_token.type;
 
         // Handle implicit multiplication
-        if (should_insert_multiplication(parser)) {
+        if (should_insert_multiplication(parser))
+        {
             op = TOKEN_STAR;
             implicit_mult_count++;
             // Don't advance - we're inserting a virtual token
-        } else {
+        }
+        else
+        {
             parser_advance(parser);
         }
 
         ASTNode *right = parse_power_impl(parser);
-        if (!right || parser->error_occurred) {
+        if (!right || parser->error_occurred)
+        {
             ast_free(left);
             ast_free(right);
             return NULL;
         }
         left = ast_create_binop(op, left, right);
-        if (!left) return NULL;
+        if (!left)
+            return NULL;
     }
 
-    if (implicit_mult_count >= max_implicit_mult) {
+    if (implicit_mult_count >= max_implicit_mult)
+    {
         fprintf(stderr, "Too many implicit multiplications detected\n");
         parser->error_occurred = 1;
         ast_free(left);
@@ -226,13 +253,16 @@ ASTNode *parser_parse_power(Parser *parser)
 static ASTNode *parse_power_impl(Parser *parser)
 {
     ASTNode *left = parse_unary_impl(parser);
-    if (!left || parser->error_occurred) return left;
+    if (!left || parser->error_occurred)
+        return left;
 
     // Right-associative
-    if (parser->current_token.type == TOKEN_CARET) {
+    if (parser->current_token.type == TOKEN_CARET)
+    {
         parser_advance(parser);
         ASTNode *right = parse_power_impl(parser); // Recursive for right-associativity
-        if (!right || parser->error_occurred) {
+        if (!right || parser->error_occurred)
+        {
             ast_free(left);
             ast_free(right);
             return NULL;
@@ -252,11 +282,13 @@ ASTNode *parser_parse_unary(Parser *parser)
 
 static ASTNode *parse_unary_impl(Parser *parser)
 {
-    if (token_is_unary_op(parser->current_token.type)) {
+    if (token_is_unary_op(parser->current_token.type))
+    {
         TokenType op = parser->current_token.type;
         parser_advance(parser);
         ASTNode *operand = parse_unary_impl(parser); // Allow chaining: --5
-        if (!operand || parser->error_occurred) {
+        if (!operand || parser->error_occurred)
+        {
             return NULL;
         }
         return ast_create_unary(op, operand);
@@ -276,20 +308,27 @@ static ASTNode *parse_primary_impl(Parser *parser)
 {
     Token token = parser->current_token;
 
-    switch (token.type) {
+    switch (token.type)
+    {
     case TOKEN_INT:
     case TOKEN_FLOAT:
     {
         parser_advance(parser);
         // Use the stored number string for MPFR parsing
-        if (token.number_string) {
+        if (token.number_string)
+        {
             return ast_create_number(token.number_string, token.type == TOKEN_INT);
-        } else {
+        }
+        else
+        {
             // Fallback for backwards compatibility
             char temp_str[64];
-            if (token.type == TOKEN_INT) {
+            if (token.type == TOKEN_INT)
+            {
                 snprintf(temp_str, sizeof(temp_str), "%d", token.int_value);
-            } else {
+            }
+            else
+            {
                 snprintf(temp_str, sizeof(temp_str), "%.17g", token.float_value);
             }
             return ast_create_number(temp_str, token.type == TOKEN_INT);
@@ -300,10 +339,12 @@ static ASTNode *parse_primary_impl(Parser *parser)
     {
         parser_advance(parser);
         ASTNode *expr = parse_expression_impl(parser);
-        if (!expr || parser->error_occurred) {
+        if (!expr || parser->error_occurred)
+        {
             return NULL;
         }
-        if (parser->current_token.type != TOKEN_RPAREN) {
+        if (parser->current_token.type != TOKEN_RPAREN)
+        {
             fprintf(stderr, "Expected ')'\n");
             parser->error_occurred = 1;
             ast_free(expr);
@@ -333,7 +374,8 @@ static ASTNode *parse_primary_impl(Parser *parser)
 
     default:
         // Check if it's a function
-        if (token_is_function(token.type)) {
+        if (token_is_function(token.type))
+        {
             parser_advance(parser);
             return parser_parse_function_call(parser, token.type);
         }
@@ -349,7 +391,8 @@ ASTNode *parser_parse_function_call(Parser *parser, TokenType func_type)
     int expected_args = function_table_get_arg_count(func_type);
 
     // Expect opening parenthesis
-    if (parser->current_token.type != TOKEN_LPAREN) {
+    if (parser->current_token.type != TOKEN_LPAREN)
+    {
         fprintf(stderr, "Expected '(' after function %s\n", function_table_get_name(func_type));
         parser->error_occurred = 1;
         return NULL;
@@ -360,33 +403,40 @@ ASTNode *parser_parse_function_call(Parser *parser, TokenType func_type)
     ASTNode **args = NULL;
     int arg_count = 0;
 
-    if (expected_args > 0) {
+    if (expected_args > 0)
+    {
         args = malloc(expected_args * sizeof(ASTNode *));
-        if (!args) {
+        if (!args)
+        {
             fprintf(stderr, "Memory allocation failed\n");
             parser->error_occurred = 1;
             return NULL;
         }
 
         // Initialize to NULL for safe cleanup
-        for (int i = 0; i < expected_args; i++) {
+        for (int i = 0; i < expected_args; i++)
+        {
             args[i] = NULL;
         }
 
         // Parse first argument
         args[0] = parse_expression_impl(parser);
-        if (!args[0] || parser->error_occurred) {
+        if (!args[0] || parser->error_occurred)
+        {
             free(args);
             return NULL;
         }
         arg_count = 1;
 
         // Parse remaining arguments
-        while (arg_count < expected_args && parser->current_token.type == TOKEN_COMMA) {
+        while (arg_count < expected_args && parser->current_token.type == TOKEN_COMMA)
+        {
             parser_advance(parser); // consume ','
             args[arg_count] = parse_expression_impl(parser);
-            if (!args[arg_count] || parser->error_occurred) {
-                for (int i = 0; i < arg_count; i++) {
+            if (!args[arg_count] || parser->error_occurred)
+            {
+                for (int i = 0; i < arg_count; i++)
+                {
                     ast_free(args[i]);
                 }
                 free(args);
@@ -396,11 +446,13 @@ ASTNode *parser_parse_function_call(Parser *parser, TokenType func_type)
         }
 
         // Check if we have the right number of arguments
-        if (arg_count != expected_args) {
+        if (arg_count != expected_args)
+        {
             fprintf(stderr, "Function %s expects %d arguments, got %d\n",
                     function_table_get_name(func_type), expected_args, arg_count);
             parser->error_occurred = 1;
-            for (int i = 0; i < arg_count; i++) {
+            for (int i = 0; i < arg_count; i++)
+            {
                 ast_free(args[i]);
             }
             free(args);
@@ -409,11 +461,14 @@ ASTNode *parser_parse_function_call(Parser *parser, TokenType func_type)
     }
 
     // Expect closing parenthesis
-    if (parser->current_token.type != TOKEN_RPAREN) {
+    if (parser->current_token.type != TOKEN_RPAREN)
+    {
         fprintf(stderr, "Expected ')' after function arguments\n");
         parser->error_occurred = 1;
-        if (args) {
-            for (int i = 0; i < arg_count; i++) {
+        if (args)
+        {
+            for (int i = 0; i < arg_count; i++)
+            {
                 ast_free(args[i]);
             }
             free(args);
@@ -439,21 +494,24 @@ int parser_get_recursion_depth(Parser *parser)
 
 void parser_set_max_recursion_depth(Parser *parser, int max_depth)
 {
-    if (parser) {
+    if (parser)
+    {
         parser->max_depth = max_depth;
     }
 }
 
 void parser_clear_error(Parser *parser)
 {
-    if (parser) {
+    if (parser)
+    {
         parser->error_occurred = 0;
     }
 }
 
 const char *parser_get_error_message(Parser *parser)
 {
-    if (parser && parser->error_occurred) {
+    if (parser && parser->error_occurred)
+    {
         return "Parse error occurred";
     }
     return NULL;
@@ -486,7 +544,8 @@ int parser_match_token(Parser *parser, TokenType expected)
 
 int parser_consume_token(Parser *parser, TokenType expected)
 {
-    if (parser && parser->current_token.type == expected) {
+    if (parser && parser->current_token.type == expected)
+    {
         parser_advance(parser);
         return 1;
     }
@@ -495,12 +554,15 @@ int parser_consume_token(Parser *parser, TokenType expected)
 
 void parser_synchronize(Parser *parser)
 {
-    if (!parser) return;
-    
+    if (!parser)
+        return;
+
     // Skip tokens until we find a synchronization point
-    while (parser->current_token.type != TOKEN_EOF) {
+    while (parser->current_token.type != TOKEN_EOF)
+    {
         if (parser->current_token.type == TOKEN_RPAREN ||
-            parser->current_token.type == TOKEN_COMMA) {
+            parser->current_token.type == TOKEN_COMMA)
+        {
             break;
         }
         parser_advance(parser);
@@ -509,9 +571,11 @@ void parser_synchronize(Parser *parser)
 
 void parser_panic(Parser *parser, const char *error_msg)
 {
-    if (parser) {
+    if (parser)
+    {
         parser->error_occurred = 1;
-        if (error_msg) {
+        if (error_msg)
+        {
             fprintf(stderr, "Parser panic: %s\n", error_msg);
         }
         parser_synchronize(parser);
