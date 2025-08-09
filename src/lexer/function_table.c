@@ -48,6 +48,12 @@ static const FunctionInfo function_table[] = {
     {"PI", TOKEN_PI, -1},
     {"e", TOKEN_E, -1},
     {"E", TOKEN_E, -1},
+    {"ln2", TOKEN_LN2, -1},
+    {"LN2", TOKEN_LN2, -1},
+    {"ln10", TOKEN_LN10, -1},
+    {"LN10", TOKEN_LN10, -1},
+    {"gamma", TOKEN_GAMMA, -1},
+    {"GAMMA", TOKEN_GAMMA, -1},
 
     {NULL, TOKEN_INVALID, 0} // Sentinel
 };

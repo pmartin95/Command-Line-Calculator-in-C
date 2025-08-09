@@ -43,6 +43,9 @@ const char *token_type_str(TokenType type)
     case TOKEN_POW: return "POW";
     case TOKEN_PI: return "PI";
     case TOKEN_E: return "E";
+    case TOKEN_LN2: return "LN2";
+    case TOKEN_LN10: return "LN10";
+    case TOKEN_GAMMA: return "GAMMA";
     case TOKEN_IDENTIFIER: return "IDENTIFIER";
     case TOKEN_EOF: return "EOF";
     case TOKEN_INVALID: return "INVALID";
@@ -57,7 +60,7 @@ int token_is_function(TokenType type)
 
 int token_is_constant(TokenType type)
 {
-    return (type == TOKEN_PI || type == TOKEN_E);
+    return (type == TOKEN_PI || type == TOKEN_E || type == TOKEN_LN10 || type == TOKEN_LN2 || type == TOKEN_GAMMA);
 }
 
 int token_is_binary_op(TokenType type)

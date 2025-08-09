@@ -143,6 +143,9 @@ int test_lexer_functions()
         {TOKEN_LOG, "log"},
         {TOKEN_PI, "pi"},
         {TOKEN_E, "e"},
+        {TOKEN_LN2, "ln2"},
+        {TOKEN_LN10, "ln10"},
+        {TOKEN_GAMMA, "gamma"},
         {TOKEN_EOF, "EOF"}};
 
     for (int i = 0; i < 8; i++)

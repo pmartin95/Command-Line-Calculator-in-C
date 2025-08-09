@@ -315,6 +315,9 @@ static ASTNode *parse_primary_impl(Parser *parser)
 
     case TOKEN_PI:
     case TOKEN_E:
+    case TOKEN_LN10:
+    case TOKEN_LN2:
+    case TOKEN_GAMMA:
         parser_advance(parser);
         return ast_create_constant(token.type);
 

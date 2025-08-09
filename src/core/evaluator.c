@@ -60,6 +60,15 @@ static void evaluator_eval_constant(mpfr_t result, TokenType const_type)
     case TOKEN_E:
         constants_get_e(result);
         break;
+    case TOKEN_LN2:
+        constants_get_ln2(result);
+        break;
+    case TOKEN_LN10:
+        constants_get_ln10(result);
+        break;
+    case TOKEN_GAMMA:
+        constants_get_gamma(result);
+        break;
     default:
         snprintf(last_error, sizeof(last_error), "Unknown constant");
         mpfr_set_d(result, 0.0, global_rounding);

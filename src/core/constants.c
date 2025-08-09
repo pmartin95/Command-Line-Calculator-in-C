@@ -67,7 +67,7 @@ void constants_get_ln2(mpfr_t result)
 {
     ensure_constant_precision(&cached_ln2);
 
-    // Compute ln(2) with current precision if not cached
+    mpfr_const_log2(cached_ln2.value, global_rounding); // ln(2)
 
     mpfr_set(result, cached_ln2.value, global_rounding);
 }
@@ -75,14 +75,17 @@ void constants_get_ln2(mpfr_t result)
 void constants_get_ln10(mpfr_t result)
 {
     ensure_constant_precision(&cached_ln10);
-
+    // ln(10) = ln(2) * log2(10)
+    // Easiest: ln(10) = log(10) base e directly via mpfr
+    mpfr_set_ui(cached_ln10.value, 10, global_rounding);
+    mpfr_log(cached_ln10.value, cached_ln10.value, global_rounding);
     mpfr_set(result, cached_ln10.value, global_rounding);
 }
 
 void constants_get_gamma(mpfr_t result)
 {
     ensure_constant_precision(&cached_gamma);
-
+    mpfr_const_euler(cached_gamma.value, global_rounding); // Euler–Mascheroni γ
     mpfr_set(result, cached_gamma.value, global_rounding);
 }
 

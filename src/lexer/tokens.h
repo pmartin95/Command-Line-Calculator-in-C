@@ -46,6 +46,9 @@ typedef enum
     // Mathematical constants
     TOKEN_PI,
     TOKEN_E,
+    TOKEN_LN2,
+    TOKEN_LN10,
+    TOKEN_GAMMA,
 
     TOKEN_IDENTIFIER, // For unrecognized function names
     TOKEN_EOF,
