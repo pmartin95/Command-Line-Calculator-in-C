@@ -12,7 +12,9 @@ typedef enum
     CMD_TEST,
     CMD_CLEAR,
     CMD_HISTORY,
-    CMD_VERSION
+    CMD_VERSION,
+    CMD_MODE,
+    CMD_SET_MODE
 } CommandType;
 
 typedef struct

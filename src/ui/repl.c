@@ -163,7 +163,8 @@ ReplResult repl_process_line(const char *input)
     else
     {
         printf("= ");
-        formatter_print_smart(result);
+        formatter_print_result_with_mode(result,
+                                         ast->type == NODE_NUMBER && ast->number.is_int);
         printf("\n");
     }
 

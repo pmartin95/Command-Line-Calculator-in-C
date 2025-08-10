@@ -2,6 +2,7 @@
 #include "precision.h"
 #include "constants.h"
 #include "functions.h"
+#include "formatter.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +26,9 @@ static const CommandDef command_table[] = {
     {"clear", CMD_CLEAR, "Clear screen", "clear"},
     {"history", CMD_HISTORY, "Show command history", "history"},
     {"version", CMD_VERSION, "Show version information", "version"},
+    {"mode", CMD_MODE, "Show current display mode", "mode"},
+    {"scientific", CMD_SET_MODE, "Set scientific notation mode", "scientific"},
+    {"normal", CMD_SET_MODE, "Set normal notation mode", "normal"},
     {NULL, CMD_UNKNOWN, NULL, NULL}};
 
 static char *trim_whitespace(char *str);
@@ -74,7 +78,18 @@ Command commands_parse(const char *input)
     {
         cmd.type = CMD_SET_PRECISION;
     }
-
+    if (cmd.type == CMD_SET_MODE)
+    {
+        // For "scientific" and "normal" commands, store the command name as the argument
+        if (!cmd.argument)
+        {
+            cmd.argument = malloc(strlen(trimmed) + 1);
+            if (cmd.argument)
+            {
+                strcpy(cmd.argument, trimmed);
+            }
+        }
+    }
     free(input_copy);
     return cmd;
 }
@@ -123,6 +138,33 @@ int commands_execute(const Command *cmd)
             {
                 printf("Invalid precision value: %s\n", cmd->argument);
             }
+        }
+        return 0;
+    case CMD_MODE:
+        formatter_print_current_mode();
+        return 0;
+
+    case CMD_SET_MODE:
+        if (cmd->argument)
+        {
+            if (strcmp(cmd->argument, "scientific") == 0)
+            {
+                formatter_set_default_mode(FORMAT_SCIENTIFIC);
+                printf("Display mode set to scientific notation\n");
+            }
+            else if (strcmp(cmd->argument, "normal") == 0)
+            {
+                formatter_set_default_mode(FORMAT_SMART);
+                printf("Display mode set to normal notation\n");
+            }
+            else
+            {
+                printf("Unknown mode: %s (use 'scientific' or 'normal')\n", cmd->argument);
+            }
+        }
+        else
+        {
+            printf("No mode specified. Use 'scientific' or 'normal'\n");
         }
         return 0;
 
@@ -232,6 +274,15 @@ void commands_print_help(void)
     }
     printf("  precision <bits> - Set precision (53-8192 bits)\n");
     printf("\n");
+
+    printf("Display mode commands:\n");
+    printf("  mode              -> Show current display mode\n");
+    printf("  scientific        -> Always use scientific notation (1.23e+05)\n");
+    printf("  normal            -> Use normal notation when appropriate\n\n");
+
+    printf("Display mode examples:\n");
+    printf("  Normal mode:      12345 -> 12345, 0.00001 -> 1e-05\n");
+    printf("  Scientific mode:  12345 -> 1.2345e+04, 0.00001 -> 1e-05\n\n");
 
     printf("Basic operations:\n");
     printf("  2+3*4         -> 14\n");

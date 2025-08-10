@@ -1,6 +1,7 @@
 #include "repl.h"
 #include "input.h"
 #include "precision.h"
+#include "formatter.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +41,14 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Option %s requires an argument\n", argv[i]);
                 return 1;
             }
+        }
+        else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--scientific") == 0)
+        {
+            formatter_set_default_mode(FORMAT_SCIENTIFIC);
+        }
+        else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--normal") == 0)
+        {
+            formatter_set_default_mode(FORMAT_SMART);
         }
         else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0)
         {

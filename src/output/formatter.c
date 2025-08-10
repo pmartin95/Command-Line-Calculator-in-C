@@ -103,11 +103,39 @@ static void formatter_print_scientific(const mpfr_t value)
 
         if (strlen(digits) > 0)
         {
-            printf("%s%c.%se%+ld",
-                   is_negative ? "-" : "",
-                   digits[0],
-                   digits + 1,
-                   (long)(exp - 1));
+            long exponent = (long)(exp - 1);
+            
+            // For small exponents (-3 to 3), consider using normal notation
+            if (exponent >= -3 && exponent <= 3)
+            {
+                // Fall back to smart formatting for readability
+                formatter_print_smart_impl(value);
+                mpfr_free_str(str);
+                return;
+            }
+            
+            // Find last significant digit (remove trailing zeros)
+            size_t len = strlen(digits);
+            size_t last_significant = len - 1;
+            
+            while (last_significant > 0 && digits[last_significant] == '0')
+            {
+                last_significant--;
+            }
+            
+            // Print the result
+            printf("%s%c", is_negative ? "-" : "", digits[0]);
+            
+            if (last_significant > 0)
+            {
+                printf(".");
+                for (size_t i = 1; i <= last_significant; i++)
+                {
+                    printf("%c", digits[i]);
+                }
+            }
+            
+            printf("e%ld", exponent);
         }
         mpfr_free_str(str);
     }
@@ -217,4 +245,68 @@ void formatter_set_scientific_thresholds(double small, double large)
 {
     small_threshold = small;
     large_threshold = large;
+}
+
+// Add static variable for default mode
+static NumberFormat default_mode = FORMAT_SMART;
+
+void formatter_set_default_mode(NumberFormat format)
+{
+    default_mode = format;
+}
+
+NumberFormat formatter_get_default_mode(void)
+{
+    return default_mode;
+}
+
+void formatter_print_current_mode(void)
+{
+    const char *mode_name;
+    switch (default_mode)
+    {
+    case FORMAT_SCIENTIFIC:
+        mode_name = "scientific";
+        break;
+    case FORMAT_FIXED:
+        mode_name = "fixed";
+        break;
+    case FORMAT_SMART:
+        mode_name = "normal (smart)";
+        break;
+    case FORMAT_AUTO:
+        mode_name = "auto";
+        break;
+    default:
+        mode_name = "unknown";
+        break;
+    }
+
+    printf("Current display mode: %s\n", mode_name);
+
+    if (default_mode == FORMAT_SCIENTIFIC)
+    {
+        printf("All results will be displayed in scientific notation (e.g., 1.23e+05)\n");
+    }
+    else
+    {
+        printf("Results will be displayed in normal notation when appropriate\n");
+    }
+}
+
+void formatter_print_result_with_mode(const mpfr_t value, int original_is_int)
+{
+    // For integers in normal mode, still try to show as integer if reasonable
+    if (default_mode == FORMAT_SMART && original_is_int && mpfr_integer_p(value))
+    {
+        if (mpfr_fits_slong_p(value, global_rounding))
+        {
+            long int_val = mpfr_get_si(value, global_rounding);
+            printf("= %ld\n", int_val);
+            return;
+        }
+    }
+
+    formatter_print_number(value, default_mode);
+    printf("\n");
 }

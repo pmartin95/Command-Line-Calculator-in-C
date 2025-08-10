@@ -51,5 +51,27 @@ void formatter_set_max_decimals(int max_decimals);
  * @param large_threshold Numbers larger than this use scientific notation
  */
 void formatter_set_scientific_thresholds(double small_threshold, double large_threshold);
+/**
+ * Set default number format for results
+ * @param format Default format to use
+ */
+void formatter_set_default_mode(NumberFormat format);
 
+/**
+ * Get current default format
+ * @return Current default format
+ */
+NumberFormat formatter_get_default_mode(void);
+
+/**
+ * Print current display mode information
+ */
+void formatter_print_current_mode(void);
+
+/**
+ * Format result using current default mode
+ * @param value The result to format
+ * @param original_is_int Whether input was originally an integer
+ */
+void formatter_print_result_with_mode(const mpfr_t value, int original_is_int);
 #endif // FORMATTER_H
