@@ -11,10 +11,10 @@ This document outlines current development tasks, bug fixes, refactors, and enha
 ## Core System
 
 ### Constants System (`constants.c`, `constants.h`)
-- [ ] Refactor `constants_get_pi()` to use `ensure_constant_precision()` for consistency.
-- [ ] Implement missing constant initializers: `mpfr_const_log2`, `mpfr_const_log10`, `mpfr_gamma`.
+- [x] Refactor `constants_get_pi()` to use `ensure_constant_precision()` for consistency.
+- [x] Implement missing constant initializers: `mpfr_const_log2`, `mpfr_const_log10`, `mpfr_gamma`.
 - [ ] Add a helper function `clear_cached(CachedConstant *)` to reduce repetition.
-- [ ] Add constant support (`ln2`, `ln10`, `gamma`) to `evaluator_eval_constant()`.
+- [x] Add constant support (`ln2`, `ln10`, `gamma`) to `evaluator_eval_constant()`.
 - [ ] Consider switching from string-based lookup to `enum`-based lookup for performance and safety.
 
 ### Evaluator System (`evaluator.c`, `evaluator.h`)
