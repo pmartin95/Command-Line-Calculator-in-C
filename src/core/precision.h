@@ -4,7 +4,7 @@
 #include <mpfr.h>
 
 #define DEFAULT_PRECISION 256 // bits of precision (roughly 77 decimal digits)
-#define MIN_PRECISION 53      // double precision
+#define MIN_PRECISION 2      // double precision is 53
 #define MAX_PRECISION 8192    // reasonable upper limit
 
 // Global precision settings
