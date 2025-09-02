@@ -107,7 +107,7 @@ int token_is_function(TokenType type)
 
 int token_is_constant(TokenType type)
 {
-    return (type == TOKEN_PI || type == TOKEN_E || type == TOKEN_LN10 || type == TOKEN_LN2 || type == TOKEN_GAMMA);
+    return (type >= TOKEN_PI && type <= TOKEN_GAMMA);
 }
 
 int token_is_binary_op(TokenType type)
