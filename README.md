@@ -1,6 +1,6 @@
 # Build Requirements
 - [GNU MPFR Library](https://www.mpfr.org/)
-
+- [GNU Readline Library](https://tiswww.case.edu/php/chet/readline/rltop.html)
 
 # Project Roadmap: High-Precision Command-Line Calculator
 
