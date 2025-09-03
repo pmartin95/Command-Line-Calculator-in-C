@@ -79,7 +79,7 @@ int test_precision_setting(void)
     TEST_ASSERT(get_precision() == 512, "Should set precision to 512");
 
     // Test clamping to valid range
-    set_precision(10); // Too small
+    set_precision(1); // Too small
     TEST_ASSERT(get_precision() == MIN_PRECISION, "Should clamp to minimum");
 
     set_precision(100000); // Too large
