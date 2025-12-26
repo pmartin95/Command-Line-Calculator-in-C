@@ -4,13 +4,6 @@
 #include <string.h>
 
 // Cached constants with their precision
-typedef struct
-{
-    mpfr_t value;
-    mpfr_prec_t precision;
-    int is_initialized;
-} CachedConstant;
-
 static CachedConstant cached_pi = {0};
 static CachedConstant cached_e = {0};
 static CachedConstant cached_ln2 = {0};
@@ -116,7 +109,7 @@ int constants_is_cached(const char *constant_name)
     return 0;
 }
 
-static void clear_cached(CachedConstant *constant)
+void clear_cached(CachedConstant *constant)
 {
     if (constant->is_initialized)
     {

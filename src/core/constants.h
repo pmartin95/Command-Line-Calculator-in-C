@@ -4,6 +4,16 @@
 #include <mpfr.h>
 
 /**
+ * Cached constant with precision tracking
+ */
+typedef struct
+{
+    mpfr_t value;           // High-precision value
+    mpfr_prec_t precision;  // Precision level for this cached value
+    int is_initialized;     // Whether mpfr_t is initialized
+} CachedConstant;
+
+/**
  * Initialize constants system
  */
 void constants_init(void);
@@ -44,6 +54,12 @@ void constants_get_gamma(mpfr_t result);
  * @return 1 if cached, 0 if needs recomputation
  */
 int constants_is_cached(const char *constant_name);
+
+/**
+ * Clear a single cached constant
+ * @param constant Pointer to the cached constant to clear
+ */
+void clear_cached(CachedConstant *constant);
 
 /**
  * Clear cached constants (call when precision changes)
