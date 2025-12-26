@@ -4,6 +4,8 @@
 #include "lexer.h"
 #include "parser.h"
 #include "evaluator.h"
+#include "symbolic.h"
+#include "printer.h"
 #include "formatter.h"
 #include "precision.h"
 #include "constants.h"
@@ -15,6 +17,7 @@
 
 static char *repl_prompt = "> ";
 static int repl_echo = 0;
+static EvalMode eval_mode = EVAL_MODE_NUMERIC;
 
 int repl_init(void)
 {
@@ -151,24 +154,49 @@ ReplResult repl_process_line(const char *input)
         return REPL_CONTINUE;
     }
 
-    mpfr_t result;
-    mpfr_init2(result, global_precision);
-    evaluator_eval(result, ast);
-
-    const char *eval_error = evaluator_get_last_error();
-    if (eval_error)
+    // Evaluate based on mode
+    if (eval_mode == EVAL_MODE_SYMBOLIC)
     {
-        printf("Evaluation error: %s\n", eval_error);
+        // Symbolic evaluation
+        ASTNode *simplified = symbolic_eval(ast);
+
+        const char *symbolic_error = symbolic_get_last_error();
+        if (symbolic_error)
+        {
+            printf("Symbolic error: %s\n", symbolic_error);
+        }
+        else
+        {
+            printf("= ");
+            printer_print_ast_infix(simplified);
+            printf("\n");
+        }
+
+        ast_free(simplified);
     }
     else
     {
-        printf("= ");
-        formatter_print_result_with_mode(result,
-                                         ast->type == NODE_NUMBER && ast->number.is_int);
-        printf("\n");
+        // Numeric evaluation (default)
+        mpfr_t result;
+        mpfr_init2(result, global_precision);
+        evaluator_eval(result, ast);
+
+        const char *eval_error = evaluator_get_last_error();
+        if (eval_error)
+        {
+            printf("Evaluation error: %s\n", eval_error);
+        }
+        else
+        {
+            printf("= ");
+            formatter_print_result_with_mode(result,
+                                             ast->type == NODE_NUMBER && ast->number.is_int);
+            printf("\n");
+        }
+
+        mpfr_clear(result);
     }
 
-    mpfr_clear(result);
     ast_free(ast);
     return REPL_CONTINUE;
 }
@@ -197,4 +225,14 @@ void repl_cleanup(void)
     constants_cleanup();
     functions_cleanup();
     precision_cleanup();
+}
+
+void repl_set_eval_mode(EvalMode mode)
+{
+    eval_mode = mode;
+}
+
+EvalMode repl_get_eval_mode(void)
+{
+    return eval_mode;
 }
