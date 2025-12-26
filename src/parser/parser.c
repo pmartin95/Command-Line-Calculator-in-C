@@ -3,6 +3,7 @@
 #include "function_table.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // Maximum recursion depth to prevent stack overflow
 #define MAX_RECURSION_DEPTH 100
@@ -354,13 +355,15 @@ static ASTNode *parse_primary_impl(Parser *parser)
         return expr;
     }
 
-    case TOKEN_PI:
-    case TOKEN_E:
-    case TOKEN_LN10:
-    case TOKEN_LN2:
-    case TOKEN_GAMMA:
+    case TOKEN_CONSTANT:
+    {
+        // Store the constant name before advancing
+        char *const_name = strdup(token.string_value);
         parser_advance(parser);
-        return ast_create_constant(token.type);
+        ASTNode *node = ast_create_constant(const_name);
+        free(const_name);
+        return node;
+    }
 
     case TOKEN_INVALID:
         fprintf(stderr, "Invalid token encountered\n");

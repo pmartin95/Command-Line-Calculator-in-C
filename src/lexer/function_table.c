@@ -43,17 +43,19 @@ static const FunctionInfo function_table[] = {
     {"ceil", TOKEN_CEIL, 1},
     {"pow", TOKEN_POW, 2},
 
-    // Mathematical constants
-    {"pi", TOKEN_PI, -1},
-    {"PI", TOKEN_PI, -1},
-    {"e", TOKEN_E, -1},
-    {"E", TOKEN_E, -1},
-    {"ln2", TOKEN_LN2, -1},
-    {"LN2", TOKEN_LN2, -1},
-    {"ln10", TOKEN_LN10, -1},
-    {"LN10", TOKEN_LN10, -1},
-    {"gamma", TOKEN_GAMMA, -1},
-    {"GAMMA", TOKEN_GAMMA, -1},
+    // Mathematical constants (all use TOKEN_CONSTANT now)
+    {"pi", TOKEN_CONSTANT, -1},
+    {"PI", TOKEN_CONSTANT, -1},
+    {"e", TOKEN_CONSTANT, -1},
+    {"E", TOKEN_CONSTANT, -1},
+    {"ln2", TOKEN_CONSTANT, -1},
+    {"LN2", TOKEN_CONSTANT, -1},
+    {"ln10", TOKEN_CONSTANT, -1},
+    {"LN10", TOKEN_CONSTANT, -1},
+    {"gamma", TOKEN_CONSTANT, -1},
+    {"GAMMA", TOKEN_CONSTANT, -1},
+    {"sqrt2", TOKEN_CONSTANT, -1},
+    {"SQRT2", TOKEN_CONSTANT, -1},
 
     {NULL, TOKEN_INVALID, 0} // Sentinel
 };

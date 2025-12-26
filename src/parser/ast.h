@@ -42,7 +42,7 @@ typedef struct ASTNode
         } function;
         struct
         {
-            TokenType const_type;
+            char *name;  // Constant name (e.g., "pi", "e", "sqrt2")
         } constant;
     };
 } ASTNode;
@@ -83,10 +83,10 @@ ASTNode *ast_create_function(TokenType func_type, ASTNode **args, int arg_count)
 
 /**
  * Create a constant node
- * @param const_type Constant token type
+ * @param name Constant name (e.g., "pi", "e", "sqrt2")
  * @return New AST node or NULL on failure
  */
-ASTNode *ast_create_constant(TokenType const_type);
+ASTNode *ast_create_constant(const char *name);
 
 /**
  * Free an AST and all its children

@@ -10,7 +10,7 @@ static int strict_mode = 0;
 static char last_error[256] = {0};
 
 // Forward declarations for static functions
-static void evaluator_eval_constant(mpfr_t result, TokenType const_type);
+static void evaluator_eval_constant(mpfr_t result, const char *const_name);
 static void evaluator_eval_binop(mpfr_t result, const ASTNode *node);
 static void evaluator_eval_unary(mpfr_t result, const ASTNode *node);
 static void evaluator_eval_function(mpfr_t result, const ASTNode *node);
@@ -32,7 +32,7 @@ void evaluator_eval(mpfr_t result, const ASTNode *node)
         break;
 
     case NODE_CONSTANT:
-        evaluator_eval_constant(result, node->constant.const_type);
+        evaluator_eval_constant(result, node->constant.name);
         break;
 
     case NODE_BINOP:
@@ -53,27 +53,12 @@ void evaluator_eval(mpfr_t result, const ASTNode *node)
     }
 }
 
-static void evaluator_eval_constant(mpfr_t result, TokenType const_type)
+static void evaluator_eval_constant(mpfr_t result, const char *const_name)
 {
-    switch (const_type)
+    // Use the metadata-driven lookup!
+    if (!constants_get_by_name(result, const_name))
     {
-    case TOKEN_PI:
-        constants_get_pi(result);
-        break;
-    case TOKEN_E:
-        constants_get_e(result);
-        break;
-    case TOKEN_LN2:
-        constants_get_ln2(result);
-        break;
-    case TOKEN_LN10:
-        constants_get_ln10(result);
-        break;
-    case TOKEN_GAMMA:
-        constants_get_gamma(result);
-        break;
-    default:
-        snprintf(last_error, sizeof(last_error), "Unknown constant");
+        snprintf(last_error, sizeof(last_error), "Unknown constant: %s", const_name);
         mpfr_set_d(result, 0.0, global_rounding);
     }
 }

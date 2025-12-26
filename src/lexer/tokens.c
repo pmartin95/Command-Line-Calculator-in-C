@@ -79,16 +79,8 @@ const char *token_type_str(TokenType type)
         return "CEIL";
     case TOKEN_POW:
         return "POW";
-    case TOKEN_PI:
-        return "PI";
-    case TOKEN_E:
-        return "E";
-    case TOKEN_LN2:
-        return "LN2";
-    case TOKEN_LN10:
-        return "LN10";
-    case TOKEN_GAMMA:
-        return "GAMMA";
+    case TOKEN_CONSTANT:
+        return "CONSTANT";
     case TOKEN_IDENTIFIER:
         return "IDENTIFIER";
     case TOKEN_EOF:
@@ -107,7 +99,7 @@ int token_is_function(TokenType type)
 
 int token_is_constant(TokenType type)
 {
-    return (type >= TOKEN_PI && type <= TOKEN_GAMMA);
+    return (type == TOKEN_CONSTANT);
 }
 
 int token_is_binary_op(TokenType type)
@@ -177,7 +169,7 @@ int token_is_right_associative(TokenType type)
 
 void token_free(Token *token)
 {
-    if (token && token->type == TOKEN_IDENTIFIER && token->string_value)
+    if (token && (token->type == TOKEN_IDENTIFIER || token->type == TOKEN_CONSTANT) && token->string_value)
     {
         free(token->string_value);
         token->string_value = NULL;

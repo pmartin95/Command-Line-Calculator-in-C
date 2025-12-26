@@ -2,22 +2,45 @@
 #include "precision.h"
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 
-// Cached constants with their precision
-static CachedConstant cached_pi = {0};
-static CachedConstant cached_e = {0};
-static CachedConstant cached_ln2 = {0};
-static CachedConstant cached_ln10 = {0};
-static CachedConstant cached_gamma = {0};
+// Forward declarations for compute functions
+static void compute_pi(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd);
+static void compute_e(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd);
+static void compute_ln2(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd);
+static void compute_ln10(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd);
+static void compute_gamma(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd);
+static void compute_sqrt2(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd);
+
+/**
+ * Metadata for each constant
+ */
+typedef struct
+{
+    const char *name;
+    void (*compute_fn)(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd);
+} ConstantMetadata;
+
+// Single source of truth: metadata table
+static const ConstantMetadata constant_metadata[CONST_COUNT] = {
+    [CONST_PI]    = {"pi",    compute_pi},
+    [CONST_E]     = {"e",     compute_e},
+    [CONST_LN2]   = {"ln2",   compute_ln2},
+    [CONST_LN10]  = {"ln10",  compute_ln10},
+    [CONST_GAMMA] = {"gamma", compute_gamma},
+    [CONST_SQRT2] = {"sqrt2", compute_sqrt2}
+};
+
+// Array-based storage indexed by ConstantType
+static CachedConstant cached_constants[CONST_COUNT] = {0};
 
 void constants_init(void)
 {
-    // Initialize cache structures
-    cached_pi.is_initialized = 0;
-    cached_e.is_initialized = 0;
-    cached_ln2.is_initialized = 0;
-    cached_ln10.is_initialized = 0;
-    cached_gamma.is_initialized = 0;
+    // Initialize all constants in the array
+    for (int i = 0; i < CONST_COUNT; i++)
+    {
+        cached_constants[i].is_initialized = 0;
+    }
 }
 
 static void ensure_constant_precision(CachedConstant *constant)
@@ -28,84 +51,147 @@ static void ensure_constant_precision(CachedConstant *constant)
         {
             mpfr_clear(constant->value);
         }
-        mpfr_init2(constant->value, global_precision); // <-- THIS NEEDS TO HAPPEN
+        mpfr_init2(constant->value, global_precision);
         constant->is_initialized = 1;
     }
-    constant->precision = global_precision; // <-- Ensure this is always synced
+    constant->precision = global_precision;
 }
 
+// Compute functions for each constant
+static void compute_pi(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd)
+{
+    (void)prec;  // Unused - precision is set via mpfr_t initialization
+    mpfr_const_pi(result, rnd);
+}
+
+static void compute_e(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd)
+{
+    mpfr_t one;
+    mpfr_init2(one, prec);
+    mpfr_set_d(one, 1.0, rnd);
+    mpfr_exp(result, one, rnd);
+    mpfr_clear(one);
+}
+
+static void compute_ln2(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd)
+{
+    (void)prec;  // Unused - precision is set via mpfr_t initialization
+    mpfr_const_log2(result, rnd);
+}
+
+static void compute_ln10(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd)
+{
+    (void)prec;  // Unused - precision is set via mpfr_t initialization
+    mpfr_set_ui(result, 10, rnd);
+    mpfr_log(result, result, rnd);
+}
+
+static void compute_gamma(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd)
+{
+    (void)prec;  // Unused - precision is set via mpfr_t initialization
+    mpfr_const_euler(result, rnd);
+}
+
+static void compute_sqrt2(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd)
+{
+    (void)prec;  // Unused - precision is set via mpfr_t initialization
+    mpfr_sqrt_ui(result, 2, rnd);
+}
+
+// Generic getter function using enum
+static void constants_get_by_type(mpfr_t result, ConstantType type)
+{
+    if (type < 0 || type >= CONST_COUNT)
+    {
+        return;
+    }
+
+    CachedConstant *constant = &cached_constants[type];
+    ensure_constant_precision(constant);
+    constant_metadata[type].compute_fn(constant->value, global_precision, global_rounding);
+    mpfr_set(result, constant->value, global_rounding);
+}
+
+// Convenience functions for specific constants
 void constants_get_pi(mpfr_t result)
 {
-    ensure_constant_precision(&cached_pi);
-    mpfr_const_pi(cached_pi.value, global_rounding);
-    mpfr_set(result, cached_pi.value, global_rounding);
+    constants_get_by_type(result, CONST_PI);
 }
 
 void constants_get_e(mpfr_t result)
 {
-    ensure_constant_precision(&cached_e);
-
-    mpfr_t one;
-    mpfr_init2(one, global_precision);
-    mpfr_set_d(one, 1.0, global_rounding);
-    mpfr_exp(cached_e.value, one, global_rounding);
-    mpfr_clear(one);
-
-    mpfr_set(result, cached_e.value, global_rounding);
+    constants_get_by_type(result, CONST_E);
 }
 
 void constants_get_ln2(mpfr_t result)
 {
-    ensure_constant_precision(&cached_ln2);
-
-    mpfr_const_log2(cached_ln2.value, global_rounding); // ln(2)
-
-    mpfr_set(result, cached_ln2.value, global_rounding);
+    constants_get_by_type(result, CONST_LN2);
 }
 
 void constants_get_ln10(mpfr_t result)
 {
-    ensure_constant_precision(&cached_ln10);
-    // ln(10) = ln(2) * log2(10)
-    // Easiest: ln(10) = log(10) base e directly via mpfr
-    mpfr_set_ui(cached_ln10.value, 10, global_rounding);
-    mpfr_log(cached_ln10.value, cached_ln10.value, global_rounding);
-    mpfr_set(result, cached_ln10.value, global_rounding);
+    constants_get_by_type(result, CONST_LN10);
 }
 
 void constants_get_gamma(mpfr_t result)
 {
-    ensure_constant_precision(&cached_gamma);
-    mpfr_const_euler(cached_gamma.value, global_rounding); // Euler–Mascheroni γ
-    mpfr_set(result, cached_gamma.value, global_rounding);
+    constants_get_by_type(result, CONST_GAMMA);
+}
+
+void constants_get_sqrt2(mpfr_t result)
+{
+    constants_get_by_type(result, CONST_SQRT2);
+}
+
+int constants_is_cached_by_type(ConstantType type)
+{
+    if (type < 0 || type >= CONST_COUNT)
+    {
+        return 0;
+    }
+
+    CachedConstant *constant = &cached_constants[type];
+    return constant->is_initialized && constant->precision == global_precision;
 }
 
 int constants_is_cached(const char *constant_name)
 {
     if (!constant_name)
+    {
         return 0;
-
-    if (strcmp(constant_name, "pi") == 0)
-    {
-        return cached_pi.is_initialized && cached_pi.precision == global_precision;
-    }
-    else if (strcmp(constant_name, "e") == 0)
-    {
-        return cached_e.is_initialized && cached_e.precision == global_precision;
-    }
-    else if (strcmp(constant_name, "ln2") == 0)
-    {
-        return cached_ln2.is_initialized && cached_ln2.precision == global_precision;
-    }
-    else if (strcmp(constant_name, "ln10") == 0)
-    {
-        return cached_ln10.is_initialized && cached_ln10.precision == global_precision;
-    }
-    else if (strcmp(constant_name, "gamma") == 0)
-    {
-        return cached_gamma.is_initialized && cached_gamma.precision == global_precision;
     }
 
+    // Look up the constant name in the metadata table
+    for (int i = 0; i < CONST_COUNT; i++)
+    {
+        if (strcmp(constant_metadata[i].name, constant_name) == 0)
+        {
+            return constants_is_cached_by_type(i);
+        }
+    }
+
+    return 0;
+}
+
+int constants_get_by_name(mpfr_t result, const char *constant_name)
+{
+    if (!constant_name)
+    {
+        return 0;
+    }
+
+    // Look up the constant in the metadata table (case-insensitive)
+    for (int i = 0; i < CONST_COUNT; i++)
+    {
+        if (strcasecmp(constant_metadata[i].name, constant_name) == 0)
+        {
+            // Found it! Use the internal getter
+            constants_get_by_type(result, i);
+            return 1;
+        }
+    }
+
+    // Unknown constant
     return 0;
 }
 
@@ -120,11 +206,10 @@ void clear_cached(CachedConstant *constant)
 
 void constants_clear_cache(void)
 {
-    clear_cached(&cached_pi);
-    clear_cached(&cached_e);
-    clear_cached(&cached_ln2);
-    clear_cached(&cached_ln10);
-    clear_cached(&cached_gamma);
+    for (int i = 0; i < CONST_COUNT; i++)
+    {
+        clear_cached(&cached_constants[i]);
+    }
 }
 
 void constants_cleanup(void)

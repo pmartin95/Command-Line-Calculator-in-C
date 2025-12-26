@@ -43,12 +43,8 @@ typedef enum
     TOKEN_CEIL,
     TOKEN_POW,
 
-    // Mathematical constants
-    TOKEN_PI,
-    TOKEN_E,
-    TOKEN_LN2,
-    TOKEN_LN10,
-    TOKEN_GAMMA,
+    // Mathematical constants (unified token type)
+    TOKEN_CONSTANT,
 
     TOKEN_IDENTIFIER, // For unrecognized function names
     TOKEN_EOF,

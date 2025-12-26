@@ -259,6 +259,17 @@ static Token lexer_lex_identifier(Lexer *lexer)
     const FunctionInfo *func_info = function_table_lookup(buffer);
     if (func_info)
     {
+        // For constants, we need to store the name in string_value
+        if (func_info->token == TOKEN_CONSTANT)
+        {
+            char *str_copy = malloc(strlen(buffer) + 1);
+            if (!str_copy)
+            {
+                return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
+            }
+            strcpy(str_copy, buffer);
+            return (Token){.type = func_info->token, .string_value = str_copy, .number_string = NULL};
+        }
         return (Token){.type = func_info->token, .int_value = 0, .number_string = NULL};
     }
 
