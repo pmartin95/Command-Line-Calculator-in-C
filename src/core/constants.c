@@ -98,6 +98,9 @@ static void compute_sqrt2(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd)
     mpfr_sqrt_ui(result, 2, rnd);
 }
 
+// Extra precision bits to add for more accurate constant computation
+#define CONSTANT_PRECISION_BOOST 128
+
 // Generic getter function using enum
 static void constants_get_by_type(mpfr_t result, ConstantType type)
 {
@@ -106,10 +109,18 @@ static void constants_get_by_type(mpfr_t result, ConstantType type)
         return;
     }
 
-    CachedConstant *constant = &cached_constants[type];
-    ensure_constant_precision(constant);
-    constant_metadata[type].compute_fn(constant->value, global_precision, global_rounding);
-    mpfr_set(result, constant->value, global_rounding);
+    // Compute constant at higher precision for better accuracy
+    mpfr_prec_t high_prec = global_precision + CONSTANT_PRECISION_BOOST;
+    mpfr_t high_precision_value;
+    mpfr_init2(high_precision_value, high_prec);
+
+    // Compute the constant at high precision
+    constant_metadata[type].compute_fn(high_precision_value, high_prec, global_rounding);
+
+    // Round down to the user's requested precision
+    mpfr_set(result, high_precision_value, global_rounding);
+
+    mpfr_clear(high_precision_value);
 }
 
 // Convenience functions for specific constants

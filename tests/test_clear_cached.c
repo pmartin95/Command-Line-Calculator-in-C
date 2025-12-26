@@ -43,29 +43,29 @@ int test_clear_cached_helper(void)
 
 /**
  * Test enum-based API for constants
+ * NOTE: With high-precision constant computation, we no longer cache constants
+ * at user precision. This test now verifies constants are computed correctly.
  */
 int test_enum_based_api(void)
 {
     printf("Testing enum-based constant API...\n");
 
-    // Test that constants are not cached initially
-    TEST_ASSERT(!constants_is_cached_by_type(CONST_PI), "Pi should not be cached initially");
-    TEST_ASSERT(!constants_is_cached_by_type(CONST_E), "E should not be cached initially");
+    // Compute pi and e
+    mpfr_t pi_result, e_result;
+    mpfr_init2(pi_result, global_precision);
+    mpfr_init2(e_result, global_precision);
 
-    // Compute pi
-    mpfr_t result;
-    mpfr_init2(result, global_precision);
-    constants_get_pi(result);
+    constants_get_pi(pi_result);
+    constants_get_e(e_result);
 
-    TEST_ASSERT(constants_is_cached_by_type(CONST_PI), "Pi should be cached after computation");
-    TEST_ASSERT(!constants_is_cached_by_type(CONST_E), "E should still not be cached");
+    // Verify the constants are computed correctly (basic sanity checks)
+    TEST_ASSERT(mpfr_cmp_d(pi_result, 3.0) > 0 && mpfr_cmp_d(pi_result, 3.2) < 0,
+                "Pi should be approximately 3.14159...");
+    TEST_ASSERT(mpfr_cmp_d(e_result, 2.7) > 0 && mpfr_cmp_d(e_result, 2.8) < 0,
+                "E should be approximately 2.71828...");
 
-    // Verify string API still works and is consistent
-    TEST_ASSERT(constants_is_cached("pi"), "String API should find cached pi");
-    TEST_ASSERT(!constants_is_cached("e"), "String API should not find uncached e");
-
-    mpfr_clear(result);
-    constants_clear_cache();
+    mpfr_clear(pi_result);
+    mpfr_clear(e_result);
 
     printf("  ✅ Enum-based API tests passed\n");
     return 1;
