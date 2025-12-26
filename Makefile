@@ -250,8 +250,8 @@ count:
 
 info:
 	@echo "Building modular high-precision calculator..."
-	@echo "Readline support: $(READLINE_STATUS)"
-	@echo "MPFR support: $(MPFR_STATUS)"
+	@echo 'Readline support: $(READLINE_STATUS)'
+	@echo 'MPFR support: $(MPFR_STATUS)'
 	@echo ""
 	@echo "Module structure:"
 	@echo "  Core:   $(words $(CORE_SOURCES)) files"
