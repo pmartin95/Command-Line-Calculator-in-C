@@ -317,6 +317,28 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
             ast_free(right);
             return ast_create_number(buffer, 1);
         }
+        // sqrt(a) × sqrt(b) → sqrt(a×b)
+        if (left->type == NODE_FUNCTION && left->function.func_type == TOKEN_SQRT &&
+            right->type == NODE_FUNCTION && right->function.func_type == TOKEN_SQRT)
+        {
+            ASTNode *a = left->function.args[0];
+            ASTNode *b = right->function.args[0];
+
+            // Clone the arguments
+            ASTNode *a_clone = symbolic_clone(a);
+            ASTNode *b_clone = symbolic_clone(b);
+
+            ast_free(left);
+            ast_free(right);
+
+            // Create a × b
+            ASTNode *product = symbolic_simplify_binop(TOKEN_STAR, a_clone, b_clone);
+
+            // Return sqrt(a × b)
+            ASTNode **sqrt_args = malloc(sizeof(ASTNode *));
+            sqrt_args[0] = product;
+            return symbolic_simplify_function(TOKEN_SQRT, sqrt_args, 1);
+        }
         break;
 
     case TOKEN_SLASH:
