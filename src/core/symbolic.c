@@ -42,6 +42,66 @@ static int is_fraction(const ASTNode *node, ASTNode **num, ASTNode **denom)
     return 0;
 }
 
+// Helper function to compare nodes for canonical ordering
+// Returns: -1 if a < b, 0 if a == b, 1 if a > b
+static int node_compare(const ASTNode *a, const ASTNode *b)
+{
+    if (!a && !b) return 0;
+    if (!a) return -1;
+    if (!b) return 1;
+
+    // Order by node type first: NUMBER < CONSTANT < FUNCTION < BINOP < UNARY
+    if (a->type != b->type)
+    {
+        return a->type - b->type;
+    }
+
+    switch (a->type)
+    {
+    case NODE_NUMBER:
+        // Compare numeric values
+        return mpfr_cmp(a->number.value, b->number.value);
+
+    case NODE_CONSTANT:
+        // Compare alphabetically
+        return strcmp(a->constant.name, b->constant.name);
+
+    case NODE_FUNCTION:
+        if (a->function.func_type != b->function.func_type)
+            return a->function.func_type - b->function.func_type;
+        if (a->function.arg_count != b->function.arg_count)
+            return a->function.arg_count - b->function.arg_count;
+        // Compare arguments
+        for (int i = 0; i < a->function.arg_count; i++)
+        {
+            int cmp = node_compare(a->function.args[i], b->function.args[i]);
+            if (cmp != 0) return cmp;
+        }
+        return 0;
+
+    case NODE_BINOP:
+        if (a->binop.op != b->binop.op)
+            return a->binop.op - b->binop.op;
+        int left_cmp = node_compare(a->binop.left, b->binop.left);
+        if (left_cmp != 0) return left_cmp;
+        return node_compare(a->binop.right, b->binop.right);
+
+    case NODE_UNARY:
+        if (a->unary.op != b->unary.op)
+            return a->unary.op - b->unary.op;
+        return node_compare(a->unary.operand, b->unary.operand);
+
+    default:
+        return 0;
+    }
+}
+
+// Helper function to check if operation is commutative
+static int is_commutative(TokenType op)
+{
+    return (op == TOKEN_PLUS || op == TOKEN_STAR);
+}
+
 ASTNode *symbolic_eval(const ASTNode *node)
 {
     symbolic_clear_error();
@@ -109,6 +169,15 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
         return ast_create_binop(op, left, right);
     }
 
+    // Canonicalize commutative operations (ensure consistent ordering)
+    if (is_commutative(op) && node_compare(left, right) > 0)
+    {
+        // Swap operands to maintain canonical order
+        ASTNode *temp = left;
+        left = right;
+        right = temp;
+    }
+
     // Arithmetic identity rules
     switch (op)
     {
@@ -140,6 +209,59 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
             ast_free(left);
             ast_free(right);
             return ast_create_number(buffer, 1);
+        }
+        // x + x → 2×x (like-term collection)
+        if (symbolic_equals(left, right))
+        {
+            ASTNode *two = ast_create_number("2", 1);
+            ast_free(right);
+            return symbolic_simplify_binop(TOKEN_STAR, two, left);
+        }
+        // (a×x) + x → (a+1)×x
+        if (left->type == NODE_BINOP && left->binop.op == TOKEN_STAR &&
+            symbolic_equals(left->binop.right, right))
+        {
+            ASTNode *a = left->binop.left;
+            ASTNode *one = ast_create_number("1", 1);
+            ASTNode *x = left->binop.right;
+            ast_free(right);
+            free(left);
+
+            // Compute a + 1
+            ASTNode *a_plus_1 = symbolic_simplify_binop(TOKEN_PLUS, a, one);
+            return symbolic_simplify_binop(TOKEN_STAR, a_plus_1, x);
+        }
+        // x + (b×x) → (1+b)×x
+        if (right->type == NODE_BINOP && right->binop.op == TOKEN_STAR &&
+            symbolic_equals(left, right->binop.right))
+        {
+            ASTNode *b = right->binop.left;
+            ASTNode *one = ast_create_number("1", 1);
+            ASTNode *x = right->binop.right;
+            ast_free(left);
+            free(right);
+
+            // Compute 1 + b
+            ASTNode *one_plus_b = symbolic_simplify_binop(TOKEN_PLUS, one, b);
+            return symbolic_simplify_binop(TOKEN_STAR, one_plus_b, x);
+        }
+        // (a×x) + (b×x) → (a+b)×x
+        if (left->type == NODE_BINOP && left->binop.op == TOKEN_STAR &&
+            right->type == NODE_BINOP && right->binop.op == TOKEN_STAR &&
+            symbolic_equals(left->binop.right, right->binop.right))
+        {
+            ASTNode *a = left->binop.left;
+            ASTNode *b = right->binop.left;
+            ASTNode *x = symbolic_clone(left->binop.right);
+
+            ast_free(left->binop.right);
+            ast_free(right->binop.right);
+            free(left);
+            free(right);
+
+            // Compute a + b
+            ASTNode *a_plus_b = symbolic_simplify_binop(TOKEN_PLUS, a, b);
+            return symbolic_simplify_binop(TOKEN_STAR, a_plus_b, x);
         }
         break;
 
@@ -198,6 +320,14 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
         break;
 
     case TOKEN_SLASH:
+        // x ÷ 0 → error (division by zero)
+        if (symbolic_is_zero(right))
+        {
+            snprintf(last_error, sizeof(last_error), "Division by zero");
+            ast_free(left);
+            ast_free(right);
+            return ast_create_number("0", 1); // Return 0 as fallback
+        }
         // x ÷ 1 → x
         if (symbolic_is_one(right))
         {
@@ -212,7 +342,7 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
             return ast_create_number("1", 1);
         }
         // 0 ÷ x → 0 (if x is not zero)
-        if (symbolic_is_zero(left) && !symbolic_is_zero(right))
+        if (symbolic_is_zero(left))
         {
             ast_free(left);
             ast_free(right);
@@ -495,6 +625,98 @@ static ASTNode *symbolic_simplify_function(TokenType func_type, ASTNode **args, 
                 ast_free(args[i]);
             free(args);
             return ast_create_number("1", 1);
+        }
+        break;
+
+    case TOKEN_LOG:
+        // log(1) → 0 (natural logarithm)
+        if (symbolic_is_one(arg))
+        {
+            for (int i = 0; i < arg_count; i++)
+                ast_free(args[i]);
+            free(args);
+            return ast_create_number("0", 1);
+        }
+        // log(e) → 1
+        if (matches_constant(arg, "e"))
+        {
+            for (int i = 0; i < arg_count; i++)
+                ast_free(args[i]);
+            free(args);
+            return ast_create_number("1", 1);
+        }
+        break;
+
+    case TOKEN_LOG10:
+        // log10(1) → 0
+        if (symbolic_is_one(arg))
+        {
+            for (int i = 0; i < arg_count; i++)
+                ast_free(args[i]);
+            free(args);
+            return ast_create_number("0", 1);
+        }
+        // log10(10) → 1
+        if (arg->type == NODE_NUMBER && arg->number.is_int &&
+            mpfr_cmp_ui(arg->number.value, 10) == 0)
+        {
+            for (int i = 0; i < arg_count; i++)
+                ast_free(args[i]);
+            free(args);
+            return ast_create_number("1", 1);
+        }
+        break;
+
+    case TOKEN_EXP:
+        // exp(0) → 1
+        if (symbolic_is_zero(arg))
+        {
+            for (int i = 0; i < arg_count; i++)
+                ast_free(args[i]);
+            free(args);
+            return ast_create_number("1", 1);
+        }
+        // exp(1) → e
+        if (symbolic_is_one(arg))
+        {
+            for (int i = 0; i < arg_count; i++)
+                ast_free(args[i]);
+            free(args);
+            return ast_create_constant("e");
+        }
+        break;
+
+    case TOKEN_ABS:
+        // abs(0) → 0
+        if (symbolic_is_zero(arg))
+        {
+            for (int i = 0; i < arg_count; i++)
+                ast_free(args[i]);
+            free(args);
+            return ast_create_number("0", 1);
+        }
+        // abs(x) → x (if x is a positive number)
+        if (arg->type == NODE_NUMBER && mpfr_sgn(arg->number.value) >= 0)
+        {
+            // Already positive, return as-is
+            free(args);
+            return arg;
+        }
+        // abs(x) → -x (if x is a negative number)
+        if (arg->type == NODE_NUMBER && mpfr_sgn(arg->number.value) < 0)
+        {
+            mpfr_t result;
+            mpfr_init2(result, mpfr_get_prec(arg->number.value));
+            mpfr_abs(result, arg->number.value, global_rounding);
+
+            char buffer[256];
+            mpfr_sprintf(buffer, "%.0Rf", result);
+            mpfr_clear(result);
+
+            for (int i = 0; i < arg_count; i++)
+                ast_free(args[i]);
+            free(args);
+            return ast_create_number(buffer, arg->number.is_int);
         }
         break;
 
