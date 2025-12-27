@@ -376,6 +376,44 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
             ast_free(right);
             return ast_create_number(buffer, 1);
         }
+        // n × log(x) → log(x^n) (logarithm power rule)
+        TokenType log_type_mult;
+        ASTNode *log_arg_mult;
+        if (left->type == NODE_NUMBER &&
+            is_log_function(right, &log_type_mult, &log_arg_mult))
+        {
+            // n is a number, right is log(x)
+            ASTNode *n = left;
+            ASTNode *x = symbolic_clone(log_arg_mult);
+
+            ast_free(right);
+
+            // Create x^n
+            ASTNode *power = symbolic_simplify_binop(TOKEN_CARET, x, n);
+
+            // Return log(x^n)
+            ASTNode **log_args = malloc(sizeof(ASTNode *));
+            log_args[0] = power;
+            return symbolic_simplify_function(log_type_mult, log_args, 1);
+        }
+        // log(x) × n → log(x^n) (commutative case)
+        if (right->type == NODE_NUMBER &&
+            is_log_function(left, &log_type_mult, &log_arg_mult))
+        {
+            // left is log(x), n is a number
+            ASTNode *n = right;
+            ASTNode *x = symbolic_clone(log_arg_mult);
+
+            ast_free(left);
+
+            // Create x^n
+            ASTNode *power = symbolic_simplify_binop(TOKEN_CARET, x, n);
+
+            // Return log(x^n)
+            ASTNode **log_args = malloc(sizeof(ASTNode *));
+            log_args[0] = power;
+            return symbolic_simplify_function(log_type_mult, log_args, 1);
+        }
         // sqrt(a) × sqrt(b) → sqrt(a×b)
         if (left->type == NODE_FUNCTION && left->function.func_type == TOKEN_SQRT &&
             right->type == NODE_FUNCTION && right->function.func_type == TOKEN_SQRT)
@@ -581,6 +619,35 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
             ast_free(left);
             ast_free(right);
             return ast_create_number("1", 1);
+        }
+        // a^b → c (if both are small positive integers, compute the result)
+        if (left->type == NODE_NUMBER && left->number.is_int &&
+            right->type == NODE_NUMBER && right->number.is_int)
+        {
+            // Only compute for small exponents to avoid overflow
+            unsigned long base = mpfr_get_ui(left->number.value, global_rounding);
+            unsigned long exp = mpfr_get_ui(right->number.value, global_rounding);
+
+            // Limit to reasonable values to prevent overflow
+            if (base > 0 && base < 1000 && exp > 0 && exp < 20)
+            {
+                mpfr_t result;
+                mpfr_init2(result, mpfr_get_prec(left->number.value));
+                mpfr_pow(result, left->number.value, right->number.value, global_rounding);
+
+                // Check if result is still an integer
+                if (mpfr_integer_p(result))
+                {
+                    char buffer[256];
+                    mpfr_sprintf(buffer, "%.0Rf", result);
+                    mpfr_clear(result);
+
+                    ast_free(left);
+                    ast_free(right);
+                    return ast_create_number(buffer, 1);
+                }
+                mpfr_clear(result);
+            }
         }
         break;
 
