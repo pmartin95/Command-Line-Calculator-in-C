@@ -102,6 +102,23 @@ static int is_commutative(TokenType op)
     return (op == TOKEN_PLUS || op == TOKEN_STAR);
 }
 
+// Helper function to check if node is a log function with specific base
+static int is_log_function(const ASTNode *node, TokenType *log_type, ASTNode **arg)
+{
+    if (!node || node->type != NODE_FUNCTION)
+        return 0;
+
+    if (node->function.func_type == TOKEN_LOG ||
+        node->function.func_type == TOKEN_LOG10)
+    {
+        if (log_type) *log_type = node->function.func_type;
+        if (arg) *arg = node->function.args[0];
+        return 1;
+    }
+
+    return 0;
+}
+
 ASTNode *symbolic_eval(const ASTNode *node)
 {
     symbolic_clear_error();
@@ -263,6 +280,28 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
             ASTNode *a_plus_b = symbolic_simplify_binop(TOKEN_PLUS, a, b);
             return symbolic_simplify_binop(TOKEN_STAR, a_plus_b, x);
         }
+        // log(a) + log(b) → log(a×b) (same log base)
+        TokenType log_type_left, log_type_right;
+        ASTNode *log_arg_left, *log_arg_right;
+        if (is_log_function(left, &log_type_left, &log_arg_left) &&
+            is_log_function(right, &log_type_right, &log_arg_right) &&
+            log_type_left == log_type_right)
+        {
+            // Clone the arguments
+            ASTNode *a = symbolic_clone(log_arg_left);
+            ASTNode *b = symbolic_clone(log_arg_right);
+
+            ast_free(left);
+            ast_free(right);
+
+            // Create a × b
+            ASTNode *product = symbolic_simplify_binop(TOKEN_STAR, a, b);
+
+            // Return log(a × b)
+            ASTNode **log_args = malloc(sizeof(ASTNode *));
+            log_args[0] = product;
+            return symbolic_simplify_function(log_type_left, log_args, 1);
+        }
         break;
 
     case TOKEN_MINUS:
@@ -278,6 +317,26 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
             ast_free(left);
             ast_free(right);
             return ast_create_number("0", 1);
+        }
+        // log(a) - log(b) → log(a÷b) (same log base)
+        if (is_log_function(left, &log_type_left, &log_arg_left) &&
+            is_log_function(right, &log_type_right, &log_arg_right) &&
+            log_type_left == log_type_right)
+        {
+            // Clone the arguments
+            ASTNode *a = symbolic_clone(log_arg_left);
+            ASTNode *b = symbolic_clone(log_arg_right);
+
+            ast_free(left);
+            ast_free(right);
+
+            // Create a ÷ b
+            ASTNode *quotient = symbolic_simplify_binop(TOKEN_SLASH, a, b);
+
+            // Return log(a ÷ b)
+            ASTNode **log_args = malloc(sizeof(ASTNode *));
+            log_args[0] = quotient;
+            return symbolic_simplify_function(log_type_left, log_args, 1);
         }
         break;
 
