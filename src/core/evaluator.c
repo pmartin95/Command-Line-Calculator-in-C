@@ -3,6 +3,7 @@
 #include "constants.h"
 #include "functions.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // Evaluation state
@@ -171,13 +172,32 @@ static void evaluator_eval_unary(mpfr_t result, const ASTNode *node)
 // Extra precision for function arguments to minimize rounding errors
 #define FUNCTION_ARG_PRECISION_BOOST 128
 
+#define MAX_FUNCTION_ARGS 16
+
 static void evaluator_eval_function(mpfr_t result, const ASTNode *node)
 {
+    int arg_count = node->function.arg_count;
+
+    if (arg_count <= 0 || arg_count > MAX_FUNCTION_ARGS)
+    {
+        snprintf(last_error, sizeof(last_error),
+                 "Invalid argument count: %d (max %d)", arg_count, MAX_FUNCTION_ARGS);
+        mpfr_set_d(result, 0.0, global_rounding);
+        return;
+    }
+
     // Use higher precision for function arguments to reduce cumulative error
     mpfr_prec_t high_prec = global_precision + FUNCTION_ARG_PRECISION_BOOST;
 
-    mpfr_t args[2]; // Max 2 args for current functions
-    for (int i = 0; i < node->function.arg_count; i++)
+    mpfr_t *args = malloc(sizeof(mpfr_t) * (size_t)arg_count);
+    if (!args)
+    {
+        snprintf(last_error, sizeof(last_error), "Memory allocation failed for function args");
+        mpfr_set_d(result, 0.0, global_rounding);
+        return;
+    }
+
+    for (int i = 0; i < arg_count; i++)
     {
         mpfr_init2(args[i], high_prec);
         evaluator_eval(args[i], node->function.args[i]);
@@ -188,7 +208,7 @@ static void evaluator_eval_function(mpfr_t result, const ASTNode *node)
     mpfr_init2(high_prec_result, high_prec);
 
     // Delegate to functions module
-    int success = functions_eval(high_prec_result, node->function.func_type, args, node->function.arg_count);
+    int success = functions_eval(high_prec_result, node->function.func_type, args, arg_count);
 
     if (!success && strict_mode)
     {
@@ -212,10 +232,11 @@ static void evaluator_eval_function(mpfr_t result, const ASTNode *node)
 
     mpfr_clear(epsilon);
     mpfr_clear(high_prec_result);
-    for (int i = 0; i < node->function.arg_count; i++)
+    for (int i = 0; i < arg_count; i++)
     {
         mpfr_clear(args[i]);
     }
+    free(args);
 }
 
 // TODO
