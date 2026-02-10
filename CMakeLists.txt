@@ -114,6 +114,7 @@ if(BUILD_TESTS)
         tests/test_calculator.c
         tests/test_integration.c
         tests/test_clear_cached.c
+        tests/test_symbolic.c
         src/ui/repl.c
         src/ui/input.c
         src/ui/commands.c
@@ -143,6 +144,7 @@ if(BUILD_TESTS)
     add_test(NAME evaluator_tests COMMAND test_calculator evaluator)
     add_test(NAME precision_tests COMMAND test_calculator precision)
     add_test(NAME integration_tests COMMAND test_calculator integration)
+    add_test(NAME symbolic_tests COMMAND test_calculator symbolic)
     add_test(NAME rational_tests COMMAND test_rational)
 endif()
 
