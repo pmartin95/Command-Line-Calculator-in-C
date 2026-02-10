@@ -3,6 +3,7 @@
 #include "constants.h"
 #include "functions.h"
 #include "formatter.h"
+#include "repl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -141,7 +142,34 @@ int commands_execute(const Command *cmd)
         }
         return 0;
     case CMD_MODE:
-        formatter_print_current_mode();
+        if (cmd->argument)
+        {
+            // Setting evaluation mode
+            if (strcmp(cmd->argument, "numeric") == 0)
+            {
+                repl_set_eval_mode(EVAL_MODE_NUMERIC);
+                printf("Switched to numeric evaluation mode\n");
+            }
+            else if (strcmp(cmd->argument, "symbolic") == 0)
+            {
+                repl_set_eval_mode(EVAL_MODE_SYMBOLIC);
+                printf("Switched to symbolic evaluation mode\n");
+            }
+            else
+            {
+                printf("Unknown evaluation mode: %s\n", cmd->argument);
+                printf("Available modes: numeric, symbolic\n");
+            }
+        }
+        else
+        {
+            // Display current modes
+            EvalMode eval_mode = repl_get_eval_mode();
+            printf("Evaluation mode: %s\n",
+                   eval_mode == EVAL_MODE_NUMERIC ? "numeric" : "symbolic");
+            printf("Display mode: ");
+            formatter_print_current_mode();
+        }
         return 0;
 
     case CMD_SET_MODE:
@@ -159,7 +187,7 @@ int commands_execute(const Command *cmd)
             }
             else
             {
-                printf("Unknown mode: %s (use 'scientific' or 'normal')\n", cmd->argument);
+                printf("Unknown display mode: %s (use 'scientific' or 'normal')\n", cmd->argument);
             }
         }
         else
@@ -275,10 +303,18 @@ void commands_print_help(void)
     printf("  precision <bits> - Set precision (53-8192 bits)\n");
     printf("\n");
 
+    printf("Evaluation mode commands:\n");
+    printf("  mode              -> Show current evaluation and display modes\n");
+    printf("  mode numeric      -> Evaluate expressions numerically (default)\n");
+    printf("  mode symbolic     -> Simplify expressions symbolically\n\n");
+
     printf("Display mode commands:\n");
-    printf("  mode              -> Show current display mode\n");
     printf("  scientific        -> Always use scientific notation (1.23e+05)\n");
     printf("  normal            -> Use normal notation when appropriate\n\n");
+
+    printf("Evaluation mode examples:\n");
+    printf("  Numeric mode:     sin(0) + sin(pi) -> 0 (evaluates to number)\n");
+    printf("  Symbolic mode:    sin(0) + sin(pi) -> 0 (simplifies expression)\n\n");
 
     printf("Display mode examples:\n");
     printf("  Normal mode:      12345 -> 12345, 0.00001 -> 1e-05\n");
