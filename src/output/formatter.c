@@ -13,6 +13,7 @@ static void formatter_print_smart_impl(const mpfr_t value);
 static int max_decimal_places = -1; // -1 means auto
 static double small_threshold = 1e-6;
 static double large_threshold = 1e15;
+static NumberFormat default_mode = FORMAT_SMART;
 
 void formatter_print_smart(const mpfr_t value)
 {
@@ -104,16 +105,7 @@ static void formatter_print_scientific(const mpfr_t value)
         if (strlen(digits) > 0)
         {
             long exponent = (long)(exp - 1);
-            
-            // For small exponents (-3 to 3), consider using normal notation
-            if (exponent >= -3 && exponent <= 3)
-            {
-                // Fall back to smart formatting for readability
-                formatter_print_smart_impl(value);
-                mpfr_free_str(str);
-                return;
-            }
-            
+
             // Find last significant digit (remove trailing zeros)
             size_t len = strlen(digits);
             size_t last_significant = len - 1;
@@ -229,11 +221,43 @@ static void formatter_print_smart_impl(const mpfr_t value)
 
 char *formatter_to_string(const mpfr_t value, NumberFormat format)
 {
-    // Implementation would capture printf output to string
-    // For now, return NULL as placeholder
-    (void)value;
-    (void)format;
-    return NULL;
+    // Capture formatted output into a dynamically allocated string
+    char *result = NULL;
+    size_t size = 0;
+    FILE *stream = open_memstream(&result, &size);
+    if (!stream)
+        return NULL;
+
+    // Save stdout, redirect to memstream
+    FILE *old_stdout = stdout;
+    stdout = stream;
+
+    formatter_print_number(value, format);
+
+    // Restore stdout
+    stdout = old_stdout;
+    fclose(stream);
+
+    return result;
+}
+
+char *formatter_result_to_string(const mpfr_t value, int original_is_int)
+{
+    // Integer shortcut (mirrors formatter_print_result_with_mode logic)
+    if ((default_mode == FORMAT_SMART || default_mode == FORMAT_AUTO) &&
+        original_is_int && mpfr_integer_p(value))
+    {
+        if (mpfr_fits_slong_p(value, global_rounding))
+        {
+            long int_val = mpfr_get_si(value, global_rounding);
+            char *buf = malloc(32);
+            if (buf)
+                snprintf(buf, 32, "%ld", int_val);
+            return buf;
+        }
+    }
+
+    return formatter_to_string(value, default_mode);
 }
 
 void formatter_set_max_decimals(int max_decimals)
@@ -246,9 +270,6 @@ void formatter_set_scientific_thresholds(double small, double large)
     small_threshold = small;
     large_threshold = large;
 }
-
-// Add static variable for default mode
-static NumberFormat default_mode = FORMAT_SMART;
 
 void formatter_set_default_mode(NumberFormat format)
 {
