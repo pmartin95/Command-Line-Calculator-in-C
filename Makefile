@@ -1,3 +1,9 @@
+# NOTE: This project also supports CMake for cross-platform builds (including the Qt6 GUI).
+# To build with CMake:
+#   cmake -B build && cmake --build build
+# To build without the GUI:
+#   cmake -B build -DBUILD_GUI=OFF && cmake --build build
+
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -std=c11
 SRC_DIR = src
