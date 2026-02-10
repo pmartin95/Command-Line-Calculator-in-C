@@ -96,6 +96,16 @@ void MainWindow::setupToolbar()
             this, &MainWindow::onModeChanged);
     toolbar->addWidget(m_modeCombo);
 
+    toolbar->addSeparator();
+    toolbar->addWidget(new QLabel(QStringLiteral(" Eval: ")));
+
+    m_evalModeCombo = new QComboBox;
+    m_evalModeCombo->addItem(QStringLiteral("Numeric"), CalcEngine::Numeric);
+    m_evalModeCombo->addItem(QStringLiteral("Symbolic"), CalcEngine::Symbolic);
+    connect(m_evalModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onEvalModeChanged);
+    toolbar->addWidget(m_evalModeCombo);
+
     // Spacer
     auto *spacer = new QWidget;
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -252,6 +262,12 @@ void MainWindow::onModeChanged(int index)
 {
     auto format = static_cast<NumberFormat>(m_modeCombo->itemData(index).toInt());
     m_engine->setFormat(format);
+}
+
+void MainWindow::onEvalModeChanged(int index)
+{
+    auto mode = static_cast<CalcEngine::EvalModeQt>(m_evalModeCombo->itemData(index).toInt());
+    m_engine->setEvalMode(mode);
 }
 
 void MainWindow::onHistoryClicked(const QModelIndex &index)

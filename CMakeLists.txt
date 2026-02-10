@@ -40,6 +40,8 @@ set(CORE_SOURCES
     src/core/functions.c
     src/core/precision.c
     src/core/constants.c
+    src/core/symbolic.c
+    src/core/rational.c
     src/lexer/lexer.c
     src/lexer/tokens.c
     src/lexer/function_table.c
@@ -111,6 +113,7 @@ if(BUILD_TESTS)
         tests/test_precision.c
         tests/test_calculator.c
         tests/test_integration.c
+        tests/test_clear_cached.c
         src/ui/repl.c
         src/ui/input.c
         src/ui/commands.c
@@ -120,6 +123,12 @@ if(BUILD_TESTS)
     target_compile_definitions(test_calculator PRIVATE TESTING)
     target_link_libraries(test_calculator PRIVATE calc_core)
     target_compile_options(test_calculator PRIVATE -Wall -Wextra -pedantic)
+
+    # test_rational has its own main(), build as separate executable
+    add_executable(test_rational tests/test_rational.c)
+    target_compile_definitions(test_rational PRIVATE TESTING)
+    target_link_libraries(test_rational PRIVATE calc_core)
+    target_compile_options(test_rational PRIVATE -Wall -Wextra -pedantic)
 
     if(READLINE_LIBRARY AND READLINE_INCLUDE_DIR)
         target_compile_definitions(test_calculator PRIVATE HAVE_READLINE)
@@ -134,6 +143,7 @@ if(BUILD_TESTS)
     add_test(NAME evaluator_tests COMMAND test_calculator evaluator)
     add_test(NAME precision_tests COMMAND test_calculator precision)
     add_test(NAME integration_tests COMMAND test_calculator integration)
+    add_test(NAME rational_tests COMMAND test_rational)
 endif()
 
 # --- Qt6 GUI executable ---

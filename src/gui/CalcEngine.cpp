@@ -11,11 +11,14 @@ extern "C" {
 #include "ast.h"
 #include "evaluator.h"
 #include "formatter.h"
+#include "symbolic.h"
+#include "printer.h"
 }
 
 CalcEngine::CalcEngine(QObject *parent)
     : QObject(parent)
     , m_hasError(false)
+    , m_evalMode(Numeric)
 {
     precision_init();
     constants_init();
@@ -61,38 +64,54 @@ QString CalcEngine::evaluate(const QString &expression)
         return {};
     }
 
-    // Evaluator
-    mpfr_t result;
-    mpfr_init2(result, get_precision());
-    evaluator_clear_error();
-    evaluator_eval(result, ast);
-
-    const char *evalError = evaluator_get_last_error();
-    if (evalError) {
-        m_hasError = true;
-        m_lastError = QString::fromUtf8(evalError);
-        mpfr_clear(result);
-        ast_free(ast);
-        return {};
-    }
-
-    // Format result (with integer detection, matching CLI behavior)
-    int original_is_int = (ast->type == NODE_NUMBER && ast->number.is_int);
-    char *formatted = formatter_result_to_string(result, original_is_int);
     QString output;
-    if (formatted) {
-        output = QString::fromUtf8(formatted);
-        free(formatted);
+
+    if (m_evalMode == Symbolic) {
+        // Symbolic evaluation
+        symbolic_clear_error();
+        ASTNode *simplified = symbolic_eval(ast);
+
+        const char *symError = symbolic_get_last_error();
+        if (symError) {
+            m_hasError = true;
+            m_lastError = QString::fromUtf8(symError);
+        } else {
+            char *str = printer_ast_infix_to_string(simplified);
+            if (str) {
+                output = QString::fromUtf8(str);
+                free(str);
+            }
+        }
+
+        ast_free(simplified);
     } else {
-        // Fallback
-        char buf[256];
-        mpfr_snprintf(buf, sizeof(buf), "%Re", result);
-        output = QString::fromUtf8(buf);
+        // Numeric evaluation
+        mpfr_t result;
+        mpfr_init2(result, get_precision());
+        evaluator_clear_error();
+        evaluator_eval(result, ast);
+
+        const char *evalError = evaluator_get_last_error();
+        if (evalError) {
+            m_hasError = true;
+            m_lastError = QString::fromUtf8(evalError);
+        } else {
+            int original_is_int = (ast->type == NODE_NUMBER && ast->number.is_int);
+            char *formatted = formatter_result_to_string(result, original_is_int);
+            if (formatted) {
+                output = QString::fromUtf8(formatted);
+                free(formatted);
+            } else {
+                char buf[256];
+                mpfr_snprintf(buf, sizeof(buf), "%Re", result);
+                output = QString::fromUtf8(buf);
+            }
+        }
+
+        mpfr_clear(result);
     }
 
     m_lastResult = output;
-
-    mpfr_clear(result);
     ast_free(ast);
 
     return output;
@@ -124,6 +143,17 @@ void CalcEngine::setFormat(NumberFormat format)
 NumberFormat CalcEngine::format() const
 {
     return formatter_get_default_mode();
+}
+
+void CalcEngine::setEvalMode(EvalModeQt mode)
+{
+    m_evalMode = mode;
+    emit evalModeChanged(mode);
+}
+
+CalcEngine::EvalModeQt CalcEngine::evalMode() const
+{
+    return m_evalMode;
 }
 
 bool CalcEngine::hasError() const

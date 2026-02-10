@@ -309,6 +309,25 @@ void printer_print_parser_state(const void *parser_ptr)
     (void)parser_ptr; // Suppress unused warning
 }
 
+char *printer_ast_infix_to_string(const ASTNode *node)
+{
+    char *result = NULL;
+    size_t size = 0;
+    FILE *stream = open_memstream(&result, &size);
+    if (!stream)
+        return NULL;
+
+    FILE *old_stdout = stdout;
+    stdout = stream;
+
+    printer_print_ast_infix(node);
+
+    stdout = old_stdout;
+    fclose(stream);
+
+    return result;
+}
+
 void printer_set_debug_level(int level)
 {
     if (level < 0)

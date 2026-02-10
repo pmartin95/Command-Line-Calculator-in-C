@@ -24,6 +24,7 @@ private slots:
     void onButtonClicked(const QString &text);
     void onPrecisionChanged(int index);
     void onModeChanged(int index);
+    void onEvalModeChanged(int index);
     void onHistoryClicked(const QModelIndex &index);
     void onClearExpression();
     void onBackspace();
@@ -47,6 +48,7 @@ private:
     QListView *m_historyView;
     QComboBox *m_precisionCombo;
     QComboBox *m_modeCombo;
+    QComboBox *m_evalModeCombo;
     QLabel *m_precisionLabel;
 
     // Input history navigation

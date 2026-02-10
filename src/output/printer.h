@@ -24,6 +24,13 @@ void printer_print_ast_compact(const ASTNode *node);
 void printer_print_ast_infix(const ASTNode *node);
 
 /**
+ * Get AST in mathematical notation as a string (caller must free)
+ * @param node Root node to format
+ * @return Allocated string or NULL on failure
+ */
+char *printer_ast_infix_to_string(const ASTNode *node);
+
+/**
  * Print token information for debugging
  * @param token Token to print
  */
