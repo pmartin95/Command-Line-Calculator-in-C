@@ -9,6 +9,7 @@ extern int run_evaluator_tests(void);
 extern int run_precision_tests(void);
 extern int run_integration_tests(void);
 extern int run_clear_cached_tests(void);
+extern int run_symbolic_tests(void);
 
 typedef struct
 {
@@ -23,6 +24,7 @@ static TestSuite test_suites[] = {
     {"precision", run_precision_tests},
     {"integration", run_integration_tests},
     {"constants", run_clear_cached_tests},
+    {"symbolic", run_symbolic_tests},
     {NULL, NULL}};
 
 void print_usage(const char *program_name)
