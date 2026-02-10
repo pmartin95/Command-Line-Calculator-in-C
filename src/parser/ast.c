@@ -107,7 +107,7 @@ ASTNode *ast_create_function(TokenType func_type, ASTNode **args, int arg_count)
     return node;
 }
 
-ASTNode *ast_create_constant(TokenType const_type)
+ASTNode *ast_create_constant(const char *name)
 {
     ASTNode *node = malloc(sizeof(ASTNode));
     if (!node)
@@ -117,7 +117,13 @@ ASTNode *ast_create_constant(TokenType const_type)
     }
 
     node->type = NODE_CONSTANT;
-    node->constant.const_type = const_type;
+    node->constant.name = strdup(name);
+    if (!node->constant.name)
+    {
+        fprintf(stderr, "Memory allocation failed for constant name\n");
+        free(node);
+        return NULL;
+    }
     return node;
 }
 
@@ -134,6 +140,7 @@ void ast_free(ASTNode *node)
         mpfr_clear(node->number.value);
         break;
     case NODE_CONSTANT:
+        free(node->constant.name);
         break;
     case NODE_BINOP:
         ast_free(node->binop.left);
@@ -183,7 +190,7 @@ void ast_print(const ASTNode *node, int depth)
         break;
 
     case NODE_CONSTANT:
-        printf("CONSTANT: %s\n", token_type_str(node->constant.const_type));
+        printf("CONSTANT: %s\n", node->constant.name);
         break;
 
     case NODE_BINOP:

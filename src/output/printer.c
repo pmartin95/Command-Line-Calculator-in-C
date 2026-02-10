@@ -2,6 +2,7 @@
 #include "precision.h"
 #include "function_table.h"
 #include <stdio.h>
+#include <string.h>
 
 static int debug_level = 0;
 
@@ -35,7 +36,7 @@ void printer_print_ast(const ASTNode *node, int depth)
         break;
 
     case NODE_CONSTANT:
-        printf("CONSTANT: %s\n", token_type_str(node->constant.const_type));
+        printf("CONSTANT: %s\n", node->constant.name);
         break;
 
     case NODE_BINOP:
@@ -84,7 +85,7 @@ void printer_print_ast_compact(const ASTNode *node)
         break;
 
     case NODE_CONSTANT:
-        printf("%s", token_type_str(node->constant.const_type));
+        printf("%s", node->constant.name);
         break;
 
     case NODE_BINOP:
@@ -137,16 +138,14 @@ void printer_print_ast_infix(const ASTNode *node)
         break;
 
     case NODE_CONSTANT:
-        switch (node->constant.const_type)
+        // Special Unicode symbols for common constants
+        if (strcmp(node->constant.name, "pi") == 0)
         {
-        case TOKEN_PI:
             printf("π");
-            break;
-        case TOKEN_E:
-            printf("e");
-            break;
-        default:
-            printf("%s", token_type_str(node->constant.const_type));
+        }
+        else
+        {
+            printf("%s", node->constant.name);
         }
         break;
 
