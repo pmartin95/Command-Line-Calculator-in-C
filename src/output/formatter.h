@@ -74,4 +74,14 @@ void formatter_print_current_mode(void);
  * @param original_is_int Whether input was originally an integer
  */
 void formatter_print_result_with_mode(const mpfr_t value, int original_is_int);
+
+/**
+ * Get string representation of a result using current default mode (caller must free)
+ * Handles integer detection like formatter_print_result_with_mode
+ * @param value The result to format
+ * @param original_is_int Whether input was originally an integer
+ * @return Allocated string or NULL on failure
+ */
+char *formatter_result_to_string(const mpfr_t value, int original_is_int);
+
 #endif // FORMATTER_H
