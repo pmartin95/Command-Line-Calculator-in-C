@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 int main(int argc, char *argv[])
 {
@@ -23,17 +24,19 @@ int main(int argc, char *argv[])
         {
             if (i + 1 < argc)
             {
-                long prec = strtol(argv[i + 1], NULL, 10);
-                if (prec > 0)
+                char *endptr;
+                errno = 0;
+                long prec = strtol(argv[i + 1], &endptr, 10);
+                if (errno != 0 || endptr == argv[i + 1] || *endptr != '\0' || prec <= 0)
+                {
+                    fprintf(stderr, "Invalid precision value: %s\n", argv[i + 1]);
+                    return 1;
+                }
+                else
                 {
                     initial_precision = (mpfr_prec_t)prec;
                     set_precision_arg = 1;
                     i++; // Skip the next argument
-                }
-                else
-                {
-                    fprintf(stderr, "Invalid precision value: %s\n", argv[i + 1]);
-                    return 1;
                 }
             }
             else
