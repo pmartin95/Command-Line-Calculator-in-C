@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static char *repl_prompt = "> ";
+static const char *repl_prompt = "> ";
 static int repl_echo = 0;
 static EvalMode eval_mode = EVAL_MODE_NUMERIC;
 
@@ -205,7 +205,7 @@ void repl_set_prompt(const char *prompt)
 {
     if (prompt)
     {
-        repl_prompt = (char *)prompt;
+        repl_prompt = prompt;
     }
 }
 
