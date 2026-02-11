@@ -1,11 +1,12 @@
 #include "symbolic.h"
 #include "precision.h"
+#include "calc_limits.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 // Error handling
-static char last_error[256] = {0};
+static char last_error[ERROR_BUFFER_SIZE] = {0};
 
 // Forward declarations
 static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *right);

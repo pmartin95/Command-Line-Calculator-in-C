@@ -1,12 +1,10 @@
 #include "parser.h"
 #include "ast.h"
 #include "function_table.h"
+#include "calc_limits.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// Maximum recursion depth to prevent stack overflow
-#define MAX_RECURSION_DEPTH 100
 
 // Forward declarations for static functions
 static ASTNode *parse_expression_impl(Parser *parser);

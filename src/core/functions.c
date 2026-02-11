@@ -1,11 +1,12 @@
 #include "functions.h"
 #include "precision.h"
+#include "calc_limits.h"
 #include <stdio.h>
 #include <string.h>
 
 // Function evaluation state
 static int strict_domain_mode = 0;
-static char last_error[256] = {0};
+static char last_error[ERROR_BUFFER_SIZE] = {0};
 
 void functions_init(void)
 {

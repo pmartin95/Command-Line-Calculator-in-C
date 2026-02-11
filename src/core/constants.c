@@ -1,5 +1,6 @@
 #include "constants.h"
 #include "precision.h"
+#include "calc_limits.h"
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
@@ -98,9 +99,6 @@ static void compute_sqrt2(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd)
     mpfr_sqrt_ui(result, 2, rnd);
 }
 
-// Extra precision bits to add for more accurate constant computation
-#define CONSTANT_PRECISION_BOOST 128
-
 // Generic getter function using enum
 static void constants_get_by_type(mpfr_t result, ConstantType type)
 {
@@ -110,7 +108,7 @@ static void constants_get_by_type(mpfr_t result, ConstantType type)
     }
 
     // Compute constant at higher precision for better accuracy
-    mpfr_prec_t high_prec = global_precision + CONSTANT_PRECISION_BOOST;
+    mpfr_prec_t high_prec = global_precision + PRECISION_BOOST;
     mpfr_t high_precision_value;
     mpfr_init2(high_precision_value, high_prec);
 

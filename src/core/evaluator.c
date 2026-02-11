@@ -2,13 +2,14 @@
 #include "precision.h"
 #include "constants.h"
 #include "functions.h"
+#include "calc_limits.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // Evaluation state
 static int strict_mode = 0;
-static char last_error[256] = {0};
+static char last_error[ERROR_BUFFER_SIZE] = {0};
 
 // Forward declarations for static functions
 static void evaluator_eval_constant(mpfr_t result, const char *const_name);
@@ -64,13 +65,10 @@ static void evaluator_eval_constant(mpfr_t result, const char *const_name)
     }
 }
 
-// Extra precision for binary operations to minimize rounding errors
-#define BINOP_PRECISION_BOOST 128
-
 static void evaluator_eval_binop(mpfr_t result, const ASTNode *node)
 {
     // Use higher precision for intermediate calculations
-    mpfr_prec_t high_prec = global_precision + BINOP_PRECISION_BOOST;
+    mpfr_prec_t high_prec = global_precision + PRECISION_BOOST;
 
     mpfr_t left, right, high_prec_result;
     mpfr_init2(left, high_prec);
@@ -136,13 +134,10 @@ static void evaluator_eval_binop(mpfr_t result, const ASTNode *node)
     mpfr_clear(right);
 }
 
-// Extra precision for unary operations
-#define UNARY_PRECISION_BOOST 128
-
 static void evaluator_eval_unary(mpfr_t result, const ASTNode *node)
 {
     // Use higher precision for intermediate calculations
-    mpfr_prec_t high_prec = global_precision + UNARY_PRECISION_BOOST;
+    mpfr_prec_t high_prec = global_precision + PRECISION_BOOST;
 
     mpfr_t operand, high_prec_result;
     mpfr_init2(operand, high_prec);
@@ -169,11 +164,6 @@ static void evaluator_eval_unary(mpfr_t result, const ASTNode *node)
     mpfr_clear(operand);
 }
 
-// Extra precision for function arguments to minimize rounding errors
-#define FUNCTION_ARG_PRECISION_BOOST 128
-
-#define MAX_FUNCTION_ARGS 16
-
 static void evaluator_eval_function(mpfr_t result, const ASTNode *node)
 {
     int arg_count = node->function.arg_count;
@@ -187,7 +177,7 @@ static void evaluator_eval_function(mpfr_t result, const ASTNode *node)
     }
 
     // Use higher precision for function arguments to reduce cumulative error
-    mpfr_prec_t high_prec = global_precision + FUNCTION_ARG_PRECISION_BOOST;
+    mpfr_prec_t high_prec = global_precision + PRECISION_BOOST;
 
     mpfr_t *args = malloc(sizeof(mpfr_t) * (size_t)arg_count);
     if (!args)

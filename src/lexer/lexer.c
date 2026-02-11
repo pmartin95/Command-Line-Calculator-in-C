@@ -1,14 +1,12 @@
 #include "lexer.h"
 #include "function_table.h"
+#include "calc_limits.h"
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
 #include <math.h>
-
-// Maximum input length to prevent DoS attacks
-#define MAX_INPUT_LENGTH 1024
 
 static void lexer_advance(Lexer *lexer);
 static void lexer_skip_whitespace(Lexer *lexer);
