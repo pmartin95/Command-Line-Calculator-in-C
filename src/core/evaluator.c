@@ -2,6 +2,7 @@
 #include "precision.h"
 #include "constants.h"
 #include "functions.h"
+#include "function_table.h"
 #include "calc_limits.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -229,13 +230,88 @@ static void evaluator_eval_function(mpfr_t result, const ASTNode *node)
     free(args);
 }
 
-// TODO
 int evaluator_check_domain(const ASTNode *node)
 {
-    // This would recursively check if evaluation would cause domain errors
-    // Implementation depends on specific domain checking requirements
-    (void)node; // Suppress unused warning for now
-    return 0;
+    if (!node)
+        return 0;
+
+    switch (node->type)
+    {
+    case NODE_NUMBER:
+    case NODE_CONSTANT:
+        return 0;
+
+    case NODE_BINOP:
+    {
+        // Check children first
+        if (evaluator_check_domain(node->binop.left) ||
+            evaluator_check_domain(node->binop.right))
+            return 1;
+
+        // Check division by zero
+        if (node->binop.op == TOKEN_SLASH)
+        {
+            mpfr_t right_val;
+            mpfr_init2(right_val, global_precision);
+            evaluator_eval(right_val, node->binop.right);
+            int is_zero = mpfr_zero_p(right_val);
+            mpfr_clear(right_val);
+            if (is_zero)
+            {
+                snprintf(last_error, sizeof(last_error), "Division by zero");
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    case NODE_UNARY:
+        return evaluator_check_domain(node->unary.operand);
+
+    case NODE_FUNCTION:
+    {
+        int arg_count = node->function.arg_count;
+
+        // Check children first
+        for (int i = 0; i < arg_count; i++)
+        {
+            if (evaluator_check_domain(node->function.args[i]))
+                return 1;
+        }
+
+        // Evaluate arguments to check function domain
+        if (arg_count <= 0 || arg_count > MAX_FUNCTION_ARGS)
+            return 1;
+
+        mpfr_t *args = malloc(sizeof(mpfr_t) * (size_t)arg_count);
+        if (!args)
+            return 1;
+
+        for (int i = 0; i < arg_count; i++)
+        {
+            mpfr_init2(args[i], global_precision);
+            evaluator_eval(args[i], node->function.args[i]);
+        }
+
+        int domain_error = functions_check_domain(
+            node->function.func_type, args, arg_count);
+
+        for (int i = 0; i < arg_count; i++)
+            mpfr_clear(args[i]);
+        free(args);
+
+        if (domain_error)
+        {
+            snprintf(last_error, sizeof(last_error),
+                     "Domain error in %s()",
+                     function_table_get_name(node->function.func_type));
+        }
+        return domain_error;
+    }
+
+    default:
+        return 0;
+    }
 }
 
 void evaluator_set_strict_mode(int strict)
