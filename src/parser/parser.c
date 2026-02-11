@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "parser_utils.h"
 #include "ast.h"
 #include "function_table.h"
 #include "calc_limits.h"
@@ -14,40 +15,6 @@ static ASTNode *parse_factor_impl(Parser *parser);
 static ASTNode *parse_power_impl(Parser *parser);
 static ASTNode *parse_unary_impl(Parser *parser);
 static ASTNode *parse_primary_impl(Parser *parser);
-
-// Helper function for implicit multiplication detection
-static int should_insert_multiplication(Parser *parser)
-{
-    if (!parser)
-    {
-        return 0;
-    }
-
-    TokenType prev = parser->previous_token.type;
-    TokenType curr = parser->current_token.type;
-
-    // Check for implicit multiplication patterns
-    return (
-        // Number followed by '('
-        ((prev == TOKEN_INT || prev == TOKEN_FLOAT) && curr == TOKEN_LPAREN) ||
-        // ')' followed by '('
-        (prev == TOKEN_RPAREN && curr == TOKEN_LPAREN) ||
-        // ')' followed by number
-        (prev == TOKEN_RPAREN && (curr == TOKEN_INT || curr == TOKEN_FLOAT)) ||
-        // Number followed by number (rare but handle it)
-        ((prev == TOKEN_INT || prev == TOKEN_FLOAT) &&
-         (curr == TOKEN_INT || curr == TOKEN_FLOAT)) ||
-        // Number followed by function
-        ((prev == TOKEN_INT || prev == TOKEN_FLOAT) && token_is_function(curr)) ||
-        // ')' followed by function
-        (prev == TOKEN_RPAREN && token_is_function(curr)) ||
-        // Number or ')' followed by constant
-        ((prev == TOKEN_INT || prev == TOKEN_FLOAT || prev == TOKEN_RPAREN) &&
-         token_is_constant(curr)) ||
-        // Constant followed by number or '('
-        (token_is_constant(prev) &&
-         (curr == TOKEN_INT || curr == TOKEN_FLOAT || curr == TOKEN_LPAREN)));
-}
 
 void parser_init(Parser *parser, Lexer *lexer)
 {
@@ -201,14 +168,14 @@ static ASTNode *parse_factor_impl(Parser *parser)
 
     while ((parser->current_token.type == TOKEN_STAR ||
             parser->current_token.type == TOKEN_SLASH ||
-            should_insert_multiplication(parser)) &&
+            parser_utils_should_insert_multiplication(parser)) &&
            implicit_mult_count < max_implicit_mult)
     {
 
         TokenType op = parser->current_token.type;
 
         // Handle implicit multiplication
-        if (should_insert_multiplication(parser))
+        if (parser_utils_should_insert_multiplication(parser))
         {
             op = TOKEN_STAR;
             implicit_mult_count++;
