@@ -94,11 +94,4 @@ ASTNode *ast_create_constant(const char *name);
  */
 void ast_free(ASTNode *node);
 
-/**
- * Print AST structure for debugging
- * @param node Root node to print
- * @param depth Current indentation depth
- */
-void ast_print(const ASTNode *node, int depth);
-
 #endif // AST_H
