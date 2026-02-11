@@ -99,7 +99,7 @@ static void compute_sqrt2(mpfr_t result, mpfr_prec_t prec, mpfr_rnd_t rnd)
     mpfr_sqrt_ui(result, 2, rnd);
 }
 
-// Generic getter function using enum
+// Generic getter function using enum (with caching)
 static void constants_get_by_type(mpfr_t result, ConstantType type)
 {
     if (type < 0 || type >= CONST_COUNT)
@@ -107,18 +107,27 @@ static void constants_get_by_type(mpfr_t result, ConstantType type)
         return;
     }
 
-    // Compute constant at higher precision for better accuracy
-    mpfr_prec_t high_prec = global_precision + PRECISION_BOOST;
-    mpfr_t high_precision_value;
-    mpfr_init2(high_precision_value, high_prec);
+    CachedConstant *cached = &cached_constants[type];
 
-    // Compute the constant at high precision
-    constant_metadata[type].compute_fn(high_precision_value, high_prec, global_rounding);
+    // Recompute only if not cached or precision changed
+    if (!cached->is_initialized || cached->precision != global_precision)
+    {
+        ensure_constant_precision(cached);
 
-    // Round down to the user's requested precision
-    mpfr_set(result, high_precision_value, global_rounding);
+        // Compute constant at higher precision for better accuracy
+        mpfr_prec_t high_prec = global_precision + PRECISION_BOOST;
+        mpfr_t high_precision_value;
+        mpfr_init2(high_precision_value, high_prec);
 
-    mpfr_clear(high_precision_value);
+        constant_metadata[type].compute_fn(high_precision_value, high_prec, global_rounding);
+
+        // Round down to the user's requested precision and cache
+        mpfr_set(cached->value, high_precision_value, global_rounding);
+
+        mpfr_clear(high_precision_value);
+    }
+
+    mpfr_set(result, cached->value, global_rounding);
 }
 
 // Convenience functions for specific constants
@@ -170,10 +179,10 @@ int constants_is_cached(const char *constant_name)
         return 0;
     }
 
-    // Look up the constant name in the metadata table
+    // Look up the constant name in the metadata table (case-insensitive)
     for (int i = 0; i < CONST_COUNT; i++)
     {
-        if (strcmp(constant_metadata[i].name, constant_name) == 0)
+        if (strcasecmp(constant_metadata[i].name, constant_name) == 0)
         {
             return constants_is_cached_by_type(i);
         }
