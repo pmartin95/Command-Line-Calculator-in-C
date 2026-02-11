@@ -628,14 +628,15 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
         }
         // a^b → c (if both are small positive integers, compute the result)
         if (left->type == NODE_NUMBER && left->number.is_int &&
-            right->type == NODE_NUMBER && right->number.is_int)
+            right->type == NODE_NUMBER && right->number.is_int &&
+            mpfr_sgn(left->number.value) > 0 && mpfr_sgn(right->number.value) > 0)
         {
             // Only compute for small exponents to avoid overflow
             unsigned long base = mpfr_get_ui(left->number.value, global_rounding);
-            unsigned long exp = mpfr_get_ui(right->number.value, global_rounding);
+            unsigned long exp_val = mpfr_get_ui(right->number.value, global_rounding);
 
             // Limit to reasonable values to prevent overflow
-            if (base > 0 && base < 1000 && exp > 0 && exp < 20)
+            if (base > 0 && base < 1000 && exp_val > 0 && exp_val < 20)
             {
                 mpfr_t result;
                 mpfr_init2(result, mpfr_get_prec(left->number.value));
