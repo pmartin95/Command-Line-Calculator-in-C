@@ -706,8 +706,7 @@ static ASTNode *symbolic_simplify_function(TokenType func_type, ASTNode **args, 
             return ast_create_number("0", 1);
         }
         // sin(π/2) → 1
-        ASTNode *num, *denom;
-        if (is_fraction(arg, &num, &denom) &&
+                if (is_fraction(arg, &num, &denom) &&
             matches_constant(num, "pi") &&
             arg->type == NODE_BINOP &&
             arg->binop.op == TOKEN_SLASH &&
