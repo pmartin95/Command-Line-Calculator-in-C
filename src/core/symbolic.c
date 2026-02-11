@@ -162,7 +162,12 @@ ASTNode *symbolic_eval(const ASTNode *node)
     case NODE_FUNCTION:
     {
         // Recursively simplify arguments
-        ASTNode **args = malloc(sizeof(ASTNode *) * node->function.arg_count);
+        ASTNode **args = malloc(sizeof(ASTNode *) * (size_t)node->function.arg_count);
+        if (!args)
+        {
+            snprintf(last_error, sizeof(last_error), "Memory allocation failed in symbolic evaluation");
+            return symbolic_clone(node);
+        }
         for (int i = 0; i < node->function.arg_count; i++)
         {
             args[i] = symbolic_eval(node->function.args[i]);
