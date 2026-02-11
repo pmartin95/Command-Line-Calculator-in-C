@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 
 // Command definitions
 typedef struct
@@ -127,17 +128,19 @@ int commands_execute(const Command *cmd)
     case CMD_SET_PRECISION:
         if (cmd->argument)
         {
-            long new_prec = strtol(cmd->argument, NULL, 10);
-            if (new_prec > 0)
+            char *endptr;
+            errno = 0;
+            long new_prec = strtol(cmd->argument, &endptr, 10);
+            if (errno != 0 || endptr == cmd->argument || *endptr != '\0' || new_prec <= 0)
+            {
+                printf("Invalid precision value: %s\n", cmd->argument);
+            }
+            else
             {
                 set_precision((mpfr_prec_t)new_prec);
                 print_precision_info();
                 // Clear cached constants when precision changes
                 constants_clear_cache();
-            }
-            else
-            {
-                printf("Invalid precision value: %s\n", cmd->argument);
             }
         }
         return 0;
