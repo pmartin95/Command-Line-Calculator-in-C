@@ -127,7 +127,10 @@ static void formatter_print_scientific(const mpfr_t value)
                 }
             }
             
-            printf("e%ld", exponent);
+            if (exponent >= 0)
+                printf("e+%ld", exponent);
+            else
+                printf("e%ld", exponent);
         }
         mpfr_free_str(str);
     }
