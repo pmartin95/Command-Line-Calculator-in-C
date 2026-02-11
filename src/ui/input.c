@@ -210,12 +210,16 @@ static char *input_command_generator(const char *text, int state)
 
 static char *input_function_generator(const char *text, int state)
 {
-    // Static list of function names for completion
+    // Static list of function and constant names for completion
     static const char *functions[] = {
         "sin", "cos", "tan", "asin", "acos", "atan", "atan2",
+        "arcsin", "arccos", "arctan", "arctan2",
         "sinh", "cosh", "tanh", "asinh", "acosh", "atanh",
+        "arcsinh", "arccosh", "arctanh",
         "sqrt", "log", "ln", "log10", "exp", "abs", "floor", "ceil", "pow",
         "pi", "PI", "e", "E",
+        "ln2", "LN2", "ln10", "LN10",
+        "gamma", "GAMMA", "sqrt2", "SQRT2",
         NULL};
 
     static int function_index;
