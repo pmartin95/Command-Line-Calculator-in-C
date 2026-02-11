@@ -326,11 +326,10 @@ void formatter_print_result_with_mode(const mpfr_t value, int original_is_int)
         if (mpfr_fits_slong_p(value, global_rounding))
         {
             long int_val = mpfr_get_si(value, global_rounding);
-            printf("= %ld\n", int_val);
+            printf("%ld", int_val);
             return;
         }
     }
 
     formatter_print_number(value, default_mode);
-    printf("\n");
 }
