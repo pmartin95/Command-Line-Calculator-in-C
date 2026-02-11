@@ -45,13 +45,6 @@ char *input_read_line(const char *prompt)
 {
 #ifdef HAVE_READLINE
     char *line = readline(prompt ? prompt : "> ");
-
-    // Add non-empty lines to history
-    if (line && *line)
-    {
-        add_history(line);
-    }
-
     return line;
 #else
     // Fallback to basic getline
