@@ -682,6 +682,9 @@ static ASTNode *symbolic_simplify_function(TokenType func_type, ASTNode **args, 
 
     ASTNode *arg = args[0];
 
+    // Used by trig simplification for fraction matching (e.g., π/2, π/4)
+    ASTNode *num = NULL, *denom = NULL;
+
     // Trigonometric simplification for exact values
     switch (func_type)
     {
