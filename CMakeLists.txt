@@ -13,6 +13,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 option(BUILD_GUI "Build Qt6 GUI application" ON)
 option(BUILD_CLI "Build CLI application" ON)
 option(BUILD_TESTS "Build test suite" ON)
+option(ENABLE_ASAN "Enable AddressSanitizer for memory error detection" OFF)
+
+# --- Sanitizer support ---
+# cmake .. -DENABLE_ASAN=ON
+
+
+if(ENABLE_ASAN)
+    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address)
+    message(STATUS "AddressSanitizer: enabled")
+endif()
 
 # --- Find dependencies ---
 
@@ -168,4 +179,5 @@ message(STATUS "Build configuration:")
 message(STATUS "  CLI:   ${BUILD_CLI}")
 message(STATUS "  GUI:   ${BUILD_GUI}")
 message(STATUS "  Tests: ${BUILD_TESTS}")
+message(STATUS "  ASan:  ${ENABLE_ASAN}")
 message(STATUS "")
