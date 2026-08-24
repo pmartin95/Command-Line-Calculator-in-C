@@ -1,6 +1,8 @@
 #ifndef TOKENS_H
 #define TOKENS_H
 
+#include <stddef.h>
+
 typedef enum
 {
     TOKEN_INT,
@@ -61,6 +63,7 @@ typedef struct
         char *string_value; // For identifiers
     };
     char *number_string; // Store original number string for MPFR parsing
+    size_t pos;          // Starting column (0-based) in the input
 } Token;
 
 /**

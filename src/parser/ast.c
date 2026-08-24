@@ -162,3 +162,57 @@ void ast_free(ASTNode *node)
     }
     free(node);
 }
+
+ASTNode *ast_clone(const ASTNode *node)
+{
+    if (!node)
+    {
+        return NULL;
+    }
+
+    switch (node->type)
+    {
+    case NODE_NUMBER:
+    {
+        ASTNode *clone = malloc(sizeof(ASTNode));
+        if (!clone)
+            return NULL;
+        clone->type = NODE_NUMBER;
+        mpfr_init2(clone->number.value, mpfr_get_prec(node->number.value));
+        mpfr_set(clone->number.value, node->number.value, MPFR_RNDN);
+        clone->number.is_int = node->number.is_int;
+        return clone;
+    }
+
+    case NODE_CONSTANT:
+        return ast_create_constant(node->constant.name);
+
+    case NODE_BINOP:
+    {
+        ASTNode *left = ast_clone(node->binop.left);
+        ASTNode *right = ast_clone(node->binop.right);
+        return ast_create_binop(node->binop.op, left, right);
+    }
+
+    case NODE_UNARY:
+    {
+        ASTNode *operand = ast_clone(node->unary.operand);
+        return ast_create_unary(node->unary.op, operand);
+    }
+
+    case NODE_FUNCTION:
+    {
+        ASTNode **args = malloc(sizeof(ASTNode *) * (size_t)node->function.arg_count);
+        if (!args)
+            return NULL;
+        for (int i = 0; i < node->function.arg_count; i++)
+        {
+            args[i] = ast_clone(node->function.args[i]);
+        }
+        return ast_create_function(node->function.func_type, args, node->function.arg_count);
+    }
+
+    default:
+        return NULL;
+    }
+}

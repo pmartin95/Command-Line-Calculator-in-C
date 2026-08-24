@@ -57,7 +57,7 @@ void parser_advance(Parser *parser)
             return NULL;                                                            \
         if (parser->recursion_depth >= parser->max_depth)                           \
         {                                                                           \
-            fprintf(stderr, "Maximum recursion depth exceeded in %s\n", func_name); \
+            fprintf(stderr, "col %zu: Maximum recursion depth exceeded in %s\n", parser->current_token.pos, func_name); \
             parser->error_occurred = 1;                                             \
             return NULL;                                                            \
         }                                                                           \
@@ -200,7 +200,7 @@ static ASTNode *parse_factor_impl(Parser *parser)
 
     if (implicit_mult_count >= max_implicit_mult)
     {
-        fprintf(stderr, "Too many implicit multiplications detected\n");
+        fprintf(stderr, "col %zu: Too many implicit multiplications detected\n", parser->current_token.pos);
         parser->error_occurred = 1;
         ast_free(left);
         return NULL;
@@ -311,7 +311,7 @@ static ASTNode *parse_primary_impl(Parser *parser)
         }
         if (parser->current_token.type != TOKEN_RPAREN)
         {
-            fprintf(stderr, "Expected ')'\n");
+            fprintf(stderr, "col %zu: Expected ')'\n", parser->current_token.pos);
             parser->error_occurred = 1;
             ast_free(expr);
             return NULL;
@@ -331,12 +331,12 @@ static ASTNode *parse_primary_impl(Parser *parser)
     }
 
     case TOKEN_INVALID:
-        fprintf(stderr, "Invalid token encountered\n");
+        fprintf(stderr, "col %zu: Invalid token encountered\n", token.pos);
         parser->error_occurred = 1;
         return NULL;
 
     case TOKEN_IDENTIFIER:
-        fprintf(stderr, "Unknown function or variable: %s\n", token.string_value);
+        fprintf(stderr, "col %zu: Unknown function or variable: %s\n", token.pos, token.string_value);
         parser->error_occurred = 1;
         return NULL;
 
@@ -348,7 +348,7 @@ static ASTNode *parse_primary_impl(Parser *parser)
             return parser_parse_function_call(parser, token.type);
         }
 
-        fprintf(stderr, "Unexpected token: %s\n", token_type_str(token.type));
+        fprintf(stderr, "col %zu: Unexpected token: %s\n", token.pos, token_type_str(token.type));
         parser->error_occurred = 1;
         return NULL;
     }
@@ -361,7 +361,7 @@ ASTNode *parser_parse_function_call(Parser *parser, TokenType func_type)
     // Expect opening parenthesis
     if (parser->current_token.type != TOKEN_LPAREN)
     {
-        fprintf(stderr, "Expected '(' after function %s\n", function_table_get_name(func_type));
+        fprintf(stderr, "col %zu: Expected '(' after function %s\n", parser->current_token.pos, function_table_get_name(func_type));
         parser->error_occurred = 1;
         return NULL;
     }
@@ -416,8 +416,8 @@ ASTNode *parser_parse_function_call(Parser *parser, TokenType func_type)
         // Check if we have the right number of arguments
         if (arg_count != expected_args)
         {
-            fprintf(stderr, "Function %s expects %d arguments, got %d\n",
-                    function_table_get_name(func_type), expected_args, arg_count);
+            fprintf(stderr, "col %zu: Function %s expects %d arguments, got %d\n",
+                    parser->current_token.pos, function_table_get_name(func_type), expected_args, arg_count);
             parser->error_occurred = 1;
             for (int i = 0; i < arg_count; i++)
             {
@@ -431,7 +431,7 @@ ASTNode *parser_parse_function_call(Parser *parser, TokenType func_type)
     // Expect closing parenthesis
     if (parser->current_token.type != TOKEN_RPAREN)
     {
-        fprintf(stderr, "Expected ')' after function arguments\n");
+        fprintf(stderr, "col %zu: Expected ')' after function arguments\n", parser->current_token.pos);
         parser->error_occurred = 1;
         if (args)
         {
@@ -544,7 +544,7 @@ void parser_panic(Parser *parser, const char *error_msg)
         parser->error_occurred = 1;
         if (error_msg)
         {
-            fprintf(stderr, "Parser panic: %s\n", error_msg);
+            fprintf(stderr, "col %zu: %s\n", parser->current_token.pos, error_msg);
         }
         parser_synchronize(parser);
     }

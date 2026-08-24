@@ -286,7 +286,7 @@ Token lexer_get_next_token(Lexer *lexer)
 {
     if (!lexer)
     {
-        return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
+        return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL, .pos = 0};
     }
 
     while (lexer->current_char != '\0')
@@ -297,10 +297,15 @@ Token lexer_get_next_token(Lexer *lexer)
             continue;
         }
 
+        // Capture token start position (1-based column for display)
+        size_t token_start = lexer->pos + 1;
+
         // Handle numbers and standalone dots
         if (isdigit(lexer->current_char))
         {
-            return lexer_lex_number(lexer);
+            Token tok = lexer_lex_number(lexer);
+            tok.pos = token_start;
+            return tok;
         }
 
         // Handle dots that might start numbers
@@ -308,20 +313,24 @@ Token lexer_get_next_token(Lexer *lexer)
         {
             if (isdigit(lexer_peek(lexer)))
             {
-                return lexer_lex_number(lexer);
+                Token tok = lexer_lex_number(lexer);
+                tok.pos = token_start;
+                return tok;
             }
             else
             {
                 // Standalone dot is invalid
                 lexer_advance(lexer);
-                return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
+                return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL, .pos = token_start};
             }
         }
 
         // Handle identifiers (function names, constants)
         if (isalpha(lexer->current_char) || lexer->current_char == '_')
         {
-            return lexer_lex_identifier(lexer);
+            Token tok = lexer_lex_identifier(lexer);
+            tok.pos = token_start;
+            return tok;
         }
 
         // Handle operators and punctuation
@@ -329,74 +338,74 @@ Token lexer_get_next_token(Lexer *lexer)
         {
         case '+':
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_PLUS, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_PLUS, .int_value = 0, .number_string = NULL, .pos = token_start};
         case '-':
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_MINUS, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_MINUS, .int_value = 0, .number_string = NULL, .pos = token_start};
         case '*':
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_STAR, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_STAR, .int_value = 0, .number_string = NULL, .pos = token_start};
         case '/':
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_SLASH, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_SLASH, .int_value = 0, .number_string = NULL, .pos = token_start};
         case '^':
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_CARET, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_CARET, .int_value = 0, .number_string = NULL, .pos = token_start};
         case '(':
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_LPAREN, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_LPAREN, .int_value = 0, .number_string = NULL, .pos = token_start};
         case ')':
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_RPAREN, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_RPAREN, .int_value = 0, .number_string = NULL, .pos = token_start};
         case ',':
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_COMMA, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_COMMA, .int_value = 0, .number_string = NULL, .pos = token_start};
         case '=':
             if (lexer_peek(lexer) == '=')
             {
                 lexer_advance(lexer);
                 lexer_advance(lexer);
-                return (Token){.type = TOKEN_EQ, .int_value = 0, .number_string = NULL};
+                return (Token){.type = TOKEN_EQ, .int_value = 0, .number_string = NULL, .pos = token_start};
             }
             // Single '=' is invalid
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL, .pos = token_start};
         case '!':
             if (lexer_peek(lexer) == '=')
             {
                 lexer_advance(lexer);
                 lexer_advance(lexer);
-                return (Token){.type = TOKEN_NEQ, .int_value = 0, .number_string = NULL};
+                return (Token){.type = TOKEN_NEQ, .int_value = 0, .number_string = NULL, .pos = token_start};
             }
             // Single '!' is invalid
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL, .pos = token_start};
         case '<':
             if (lexer_peek(lexer) == '=')
             {
                 lexer_advance(lexer);
                 lexer_advance(lexer);
-                return (Token){.type = TOKEN_LTE, .int_value = 0, .number_string = NULL};
+                return (Token){.type = TOKEN_LTE, .int_value = 0, .number_string = NULL, .pos = token_start};
             }
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_LT, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_LT, .int_value = 0, .number_string = NULL, .pos = token_start};
         case '>':
             if (lexer_peek(lexer) == '=')
             {
                 lexer_advance(lexer);
                 lexer_advance(lexer);
-                return (Token){.type = TOKEN_GTE, .int_value = 0, .number_string = NULL};
+                return (Token){.type = TOKEN_GTE, .int_value = 0, .number_string = NULL, .pos = token_start};
             }
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_GT, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_GT, .int_value = 0, .number_string = NULL, .pos = token_start};
         default:
             // Unknown character
             lexer_advance(lexer);
-            return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL};
+            return (Token){.type = TOKEN_INVALID, .int_value = 0, .number_string = NULL, .pos = token_start};
         }
     }
 
-    return (Token){.type = TOKEN_EOF, .int_value = 0, .number_string = NULL};
+    return (Token){.type = TOKEN_EOF, .int_value = 0, .number_string = NULL, .pos = lexer->pos + 1};
 }
 
 int lexer_at_end(Lexer *lexer)

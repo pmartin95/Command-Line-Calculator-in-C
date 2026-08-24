@@ -20,15 +20,21 @@ typedef enum
 typedef struct
 {
     CommandType type;
-    char *argument; // Optional argument (caller must free)
+    char *argument; // Optional argument (freed by commands_free)
 } Command;
 
 /**
  * Parse a command from input string
  * @param input Input string
- * @return Parsed command (caller must free argument if present)
+ * @return Parsed command (caller must free with commands_free)
  */
 Command commands_parse(const char *input);
+
+/**
+ * Free resources associated with a parsed command
+ * @param cmd Command to free
+ */
+void commands_free(Command *cmd);
 
 /**
  * Execute a parsed command

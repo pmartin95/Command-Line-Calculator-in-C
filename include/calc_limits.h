@@ -15,6 +15,6 @@
 #define MAX_FUNCTION_ARGS 16
 
 // Size of static error message buffers throughout the codebase.
-#define ERROR_BUFFER_SIZE 256
+#define ERROR_BUFFER_SIZE 512
 
 #endif // CALC_LIMITS_H

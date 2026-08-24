@@ -12,13 +12,6 @@
 ASTNode *symbolic_eval(const ASTNode *node);
 
 /**
- * Clone an AST node (deep copy)
- * @param node Node to clone
- * @return New node (caller must free with ast_free)
- */
-ASTNode *symbolic_clone(const ASTNode *node);
-
-/**
  * Check if two AST nodes are structurally equal
  * @param a First node
  * @param b Second node

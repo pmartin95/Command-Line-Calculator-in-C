@@ -134,7 +134,7 @@ ASTNode *symbolic_eval(const ASTNode *node)
     case NODE_NUMBER:
     case NODE_CONSTANT:
         // Numbers and constants stay as-is
-        return symbolic_clone(node);
+        return ast_clone(node);
 
     case NODE_BINOP:
     {
@@ -166,7 +166,7 @@ ASTNode *symbolic_eval(const ASTNode *node)
         if (!args)
         {
             snprintf(last_error, sizeof(last_error), "Memory allocation failed in symbolic evaluation");
-            return symbolic_clone(node);
+            return ast_clone(node);
         }
         for (int i = 0; i < node->function.arg_count; i++)
         {
@@ -181,7 +181,7 @@ ASTNode *symbolic_eval(const ASTNode *node)
 
     default:
         snprintf(last_error, sizeof(last_error), "Unknown node type in symbolic evaluation");
-        return symbolic_clone(node);
+        return ast_clone(node);
     }
 }
 
@@ -275,7 +275,7 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
         {
             ASTNode *a = left->binop.left;
             ASTNode *b = right->binop.left;
-            ASTNode *x = symbolic_clone(left->binop.right);
+            ASTNode *x = ast_clone(left->binop.right);
 
             ast_free(left->binop.right);
             ast_free(right->binop.right);
@@ -294,8 +294,8 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
             log_type_left == log_type_right)
         {
             // Clone the arguments
-            ASTNode *a = symbolic_clone(log_arg_left);
-            ASTNode *b = symbolic_clone(log_arg_right);
+            ASTNode *a = ast_clone(log_arg_left);
+            ASTNode *b = ast_clone(log_arg_right);
 
             ast_free(left);
             ast_free(right);
@@ -330,8 +330,8 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
             log_type_left == log_type_right)
         {
             // Clone the arguments
-            ASTNode *a = symbolic_clone(log_arg_left);
-            ASTNode *b = symbolic_clone(log_arg_right);
+            ASTNode *a = ast_clone(log_arg_left);
+            ASTNode *b = ast_clone(log_arg_right);
 
             ast_free(left);
             ast_free(right);
@@ -390,7 +390,7 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
         {
             // n is a number, right is log(x)
             ASTNode *n = left;
-            ASTNode *x = symbolic_clone(log_arg_mult);
+            ASTNode *x = ast_clone(log_arg_mult);
 
             ast_free(right);
 
@@ -408,7 +408,7 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
         {
             // left is log(x), n is a number
             ASTNode *n = right;
-            ASTNode *x = symbolic_clone(log_arg_mult);
+            ASTNode *x = ast_clone(log_arg_mult);
 
             ast_free(left);
 
@@ -428,8 +428,8 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
             ASTNode *b = right->function.args[0];
 
             // Clone the arguments
-            ASTNode *a_clone = symbolic_clone(a);
-            ASTNode *b_clone = symbolic_clone(b);
+            ASTNode *a_clone = ast_clone(a);
+            ASTNode *b_clone = ast_clone(b);
 
             ast_free(left);
             ast_free(right);
@@ -523,10 +523,10 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
         // (a + b) ÷ c → a÷c + b÷c (distribute division over addition)
         if (left->type == NODE_BINOP && left->binop.op == TOKEN_PLUS)
         {
-            ASTNode *a = symbolic_clone(left->binop.left);
-            ASTNode *b = symbolic_clone(left->binop.right);
-            ASTNode *c1 = symbolic_clone(right);
-            ASTNode *c2 = symbolic_clone(right);
+            ASTNode *a = ast_clone(left->binop.left);
+            ASTNode *b = ast_clone(left->binop.right);
+            ASTNode *c1 = ast_clone(right);
+            ASTNode *c2 = ast_clone(right);
 
             ast_free(left);
             ast_free(right);
@@ -541,10 +541,10 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
         // (a - b) ÷ c → a÷c - b÷c (distribute division over subtraction)
         if (left->type == NODE_BINOP && left->binop.op == TOKEN_MINUS)
         {
-            ASTNode *a = symbolic_clone(left->binop.left);
-            ASTNode *b = symbolic_clone(left->binop.right);
-            ASTNode *c1 = symbolic_clone(right);
-            ASTNode *c2 = symbolic_clone(right);
+            ASTNode *a = ast_clone(left->binop.left);
+            ASTNode *b = ast_clone(left->binop.right);
+            ASTNode *c1 = ast_clone(right);
+            ASTNode *c2 = ast_clone(right);
 
             ast_free(left);
             ast_free(right);
@@ -585,8 +585,8 @@ static ASTNode *symbolic_simplify_binop(TokenType op, ASTNode *left, ASTNode *ri
 
             // Clone the nodes we need
             ASTNode *a = left;
-            ASTNode *sqrt_b = symbolic_clone(right);
-            ASTNode *b_clone = symbolic_clone(b);
+            ASTNode *sqrt_b = ast_clone(right);
+            ASTNode *b_clone = ast_clone(b);
 
             ast_free(right);
 
@@ -967,67 +967,6 @@ static ASTNode *symbolic_simplify_function(TokenType func_type, ASTNode **args, 
 
     // No simplification applied
     return ast_create_function(func_type, args, arg_count);
-}
-
-ASTNode *symbolic_clone(const ASTNode *node)
-{
-    if (!node)
-    {
-        return NULL;
-    }
-
-    switch (node->type)
-    {
-    case NODE_NUMBER:
-    {
-        // Create new number node with same value
-        ASTNode *clone = malloc(sizeof(ASTNode));
-        if (!clone)
-            return NULL;
-
-        clone->type = NODE_NUMBER;
-        mpfr_init2(clone->number.value, mpfr_get_prec(node->number.value));
-        mpfr_set(clone->number.value, node->number.value, global_rounding);
-        clone->number.is_int = node->number.is_int;
-
-        return clone;
-    }
-
-    case NODE_CONSTANT:
-    {
-        // Create new constant node with same name
-        return ast_create_constant(node->constant.name);
-    }
-
-    case NODE_BINOP:
-    {
-        // Recursively clone children
-        ASTNode *left = symbolic_clone(node->binop.left);
-        ASTNode *right = symbolic_clone(node->binop.right);
-        return ast_create_binop(node->binop.op, left, right);
-    }
-
-    case NODE_UNARY:
-    {
-        // Recursively clone operand
-        ASTNode *operand = symbolic_clone(node->unary.operand);
-        return ast_create_unary(node->unary.op, operand);
-    }
-
-    case NODE_FUNCTION:
-    {
-        // Recursively clone arguments
-        ASTNode **args = malloc(sizeof(ASTNode *) * node->function.arg_count);
-        for (int i = 0; i < node->function.arg_count; i++)
-        {
-            args[i] = symbolic_clone(node->function.args[i]);
-        }
-        return ast_create_function(node->function.func_type, args, node->function.arg_count);
-    }
-
-    default:
-        return NULL;
-    }
 }
 
 int symbolic_equals(const ASTNode *a, const ASTNode *b)

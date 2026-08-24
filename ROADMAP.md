@@ -406,20 +406,20 @@ void evaluator_eval_with_mode(mpfr_t result, const ASTNode *node, EvalMode mode)
 
 ---
 
-#### 5. `Makefile`
-**Current Purpose:** Build configuration
+#### 5. `CMakeLists.txt`
+**Current Purpose:** Build configuration (CMake)
 **Changes Required:** Add new source files to build
 
 **Modifications:**
-```makefile
-# Add new source files to SOURCES variable (around line 20-30):
-SOURCES += src/core/symbolic.c
-SOURCES += src/core/rational.c
-SOURCES += src/core/simplify_rules.c
+```cmake
+# Add new source files to CORE_SOURCES:
+src/core/symbolic.c
+src/core/rational.c
+src/core/simplify_rules.c
 
-# Add new test files to TEST_SOURCES (around line 40-50):
-TEST_SOURCES += tests/test_symbolic.c
-TEST_SOURCES += tests/test_rational.c
+# Add new test files to TEST_SOURCES:
+tests/test_symbolic.c
+tests/test_rational.c
 ```
 
 **Estimated Changes:** +5 lines
@@ -588,7 +588,7 @@ Parser (parser.c) → AST
 4. Implement `rational_simplify()` using GCD
 5. Implement comparison and utility functions
 6. Write comprehensive unit tests
-7. Add to Makefile
+7. Add to CMakeLists.txt
 
 **Acceptance Criteria:**
 - [ ] All arithmetic operations work correctly
@@ -653,13 +653,13 @@ Parser (parser.c) → AST
 ---
 
 #### Task 1.6: Set Up Testing Framework
-**Files:** `tests/test_symbolic.c`, `Makefile`
+**Files:** `tests/test_symbolic.c`, `CMakeLists.txt`
 
 **Steps:**
 1. Create test file structure
 2. Add helper functions for AST comparison
 3. Write first trivial test (passthrough)
-4. Add to Makefile test target
+4. Add to CMakeLists.txt test target
 5. Verify test runs and passes
 
 **Acceptance Criteria:**

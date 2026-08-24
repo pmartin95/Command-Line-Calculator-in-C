@@ -1,3 +1,5 @@
 bin/**
 obj/**
 build/**
+.calculator_history
+.vscode/

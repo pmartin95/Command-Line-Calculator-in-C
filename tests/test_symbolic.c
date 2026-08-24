@@ -82,14 +82,14 @@ static int assert_symbolic(const char *input, const char *expected, const char *
 
 // ---- Test suites ----
 
-static int test_symbolic_clone_and_equals(void)
+static int test_ast_clone_and_equals(void)
 {
     printf("Testing symbolic clone and equals...\n");
 
     // Clone a number
     ASTNode *num = parse_expr("42");
     TEST_ASSERT(num != NULL, "parse '42'");
-    ASTNode *clone = symbolic_clone(num);
+    ASTNode *clone = ast_clone(num);
     TEST_ASSERT(clone != NULL, "clone '42'");
     TEST_ASSERT(symbolic_equals(num, clone), "42 equals its clone");
     ast_free(num);
@@ -98,7 +98,7 @@ static int test_symbolic_clone_and_equals(void)
     // Clone a constant
     ASTNode *pi = parse_expr("pi");
     TEST_ASSERT(pi != NULL, "parse 'pi'");
-    clone = symbolic_clone(pi);
+    clone = ast_clone(pi);
     TEST_ASSERT(clone != NULL, "clone 'pi'");
     TEST_ASSERT(symbolic_equals(pi, clone), "pi equals its clone");
     ast_free(pi);
@@ -107,7 +107,7 @@ static int test_symbolic_clone_and_equals(void)
     // Clone a binop
     ASTNode *binop = parse_expr("2+3");
     TEST_ASSERT(binop != NULL, "parse '2+3'");
-    clone = symbolic_clone(binop);
+    clone = ast_clone(binop);
     TEST_ASSERT(clone != NULL, "clone '2+3'");
     TEST_ASSERT(symbolic_equals(binop, clone), "2+3 equals its clone");
     ast_free(binop);
@@ -116,7 +116,7 @@ static int test_symbolic_clone_and_equals(void)
     // Clone a function call
     ASTNode *func = parse_expr("sin(pi)");
     TEST_ASSERT(func != NULL, "parse 'sin(pi)'");
-    clone = symbolic_clone(func);
+    clone = ast_clone(func);
     TEST_ASSERT(clone != NULL, "clone 'sin(pi)'");
     TEST_ASSERT(symbolic_equals(func, clone), "sin(pi) equals its clone");
     ast_free(func);
@@ -137,7 +137,7 @@ static int test_symbolic_clone_and_equals(void)
     ast_free(n);
 
     // Clone NULL
-    TEST_ASSERT(symbolic_clone(NULL) == NULL, "clone NULL is NULL");
+    TEST_ASSERT(ast_clone(NULL) == NULL, "clone NULL is NULL");
 
     printf("  ✅ Clone and equals tests passed\n");
     return 1;
@@ -403,7 +403,7 @@ int run_symbolic_tests(void)
     int total = 0;
 
     total++;
-    if (test_symbolic_clone_and_equals())
+    if (test_ast_clone_and_equals())
         passed++;
     total++;
     if (test_symbolic_predicates())

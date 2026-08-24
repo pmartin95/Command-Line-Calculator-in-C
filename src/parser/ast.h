@@ -94,4 +94,11 @@ ASTNode *ast_create_constant(const char *name);
  */
 void ast_free(ASTNode *node);
 
+/**
+ * Deep-copy an AST node and all its children
+ * @param node Node to clone
+ * @return New node (caller must free with ast_free), or NULL on failure
+ */
+ASTNode *ast_clone(const ASTNode *node);
+
 #endif // AST_H

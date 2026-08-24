@@ -85,8 +85,8 @@ static const ConstantMetadata constant_metadata[CONST_COUNT] = {
 That's it! Now you can rebuild and use your constant:
 
 ```bash
-make clean && make
-./bin/calculator
+cmake -B build && cmake --build build
+./build/calculator-cli
 > phi
 = 1.6180339887498948482045868343656381177203091798057628621354486227052604628189
 > PHI * 2

@@ -106,11 +106,7 @@ ReplResult repl_process_line(const char *input)
     {
         Command cmd = commands_parse(input);
         int cmd_result = commands_execute(&cmd);
-
-        if (cmd.argument)
-        {
-            free(cmd.argument);
-        }
+        commands_free(&cmd);
 
         if (cmd_result > 0)
             return REPL_EXIT;
@@ -141,14 +137,15 @@ ReplResult repl_process_line(const char *input)
 
     if (parser.current_token.type == TOKEN_INVALID)
     {
-        printf("Invalid token encountered\n");
+        printf("col %zu: Invalid token encountered\n", parser.current_token.pos);
         ast_free(ast);
         return REPL_CONTINUE;
     }
 
     if (parser.current_token.type != TOKEN_EOF)
     {
-        printf("Unexpected token at end: %s\n",
+        printf("col %zu: Unexpected token at end: %s\n",
+               parser.current_token.pos,
                token_type_str(parser.current_token.type));
         ast_free(ast);
         return REPL_CONTINUE;

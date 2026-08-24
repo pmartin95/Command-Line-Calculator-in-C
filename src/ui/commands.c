@@ -96,6 +96,15 @@ Command commands_parse(const char *input)
     return cmd;
 }
 
+void commands_free(Command *cmd)
+{
+    if (cmd && cmd->argument)
+    {
+        free(cmd->argument);
+        cmd->argument = NULL;
+    }
+}
+
 int commands_execute(const Command *cmd)
 {
     if (!cmd)
